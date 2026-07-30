@@ -797,8 +797,10 @@
         <div class="sfmap-loading" id="sfmap-loading">Loading ~190,000 properties…</div>
       </div>
       <p class="sfmap-hint">
-        Drag to pan, scroll or pinch to zoom, click any home for its numbers. Zoom in (or pick a neighborhood
-        above) to see its boundary and average subsidy.
+        Drag to pan, scroll or double-click/pinch to zoom, click any home for its numbers. Zoom in (or pick a
+        neighborhood above) to see its boundary and average subsidy. Street data ©
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+        contributors, ODbL.
       </p>
 
       <details class="sfmap-methodology">
@@ -1304,7 +1306,10 @@
 
   // streets (OpenStreetMap-derived, simplified and projected ahead of time)
   var majorStreetPath = null, minorStreetPath = null;
+  var labelsMajor = [], labelsMinor = [];
   var ZOOM_FOR_MINOR_STREETS = 6;
+  var ZOOM_FOR_MAJOR_LABELS = 2;
+  var ZOOM_FOR_MINOR_LABELS = 8;
 
   function buildStreetPaths(json) {
     function toPath(lines) {
@@ -1318,6 +1323,8 @@
     }
     majorStreetPath = toPath(json.major || []);
     minorStreetPath = toPath(json.minor || []);
+    labelsMajor = json.labelsMajor || [];
+    labelsMinor = json.labelsMinor || [];
   }
 
   function loadStreets() {
@@ -1329,6 +1336,31 @@
         if (loaded) render();
       })
       .catch(function () { /* streets are a visual nice-to-have; map still works without them */ });
+  }
+
+  function drawStreetLabels(labels, s, fontPx, haloWidthPx) {
+    var view0 = view, dpr = window.devicePixelRatio || 1;
+    // visible world-space bounds, so we skip the cost of drawing off-screen labels
+    var halfW = (canvas.width / 2) / s, halfH = (canvas.height / 2) / s;
+    var minX = view0.cx - halfW, maxX = view0.cx + halfW;
+    var minY = view0.cy - halfH, maxY = view0.cy + halfH;
+    ctx.font = (fontPx / s).toFixed(2) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    for (var i = 0; i < labels.length; i++) {
+      var l = labels[i];
+      if (l.x < minX || l.x > maxX || l.y < minY || l.y > maxY) continue;
+      ctx.save();
+      ctx.translate(l.x, l.y);
+      ctx.rotate(l.a);
+      ctx.lineWidth = haloWidthPx / s;
+      ctx.strokeStyle = 'rgba(246,244,238,0.88)';
+      ctx.strokeText(l.n, 0, 0);
+      ctx.fillStyle = '#5c5346';
+      ctx.fillText(l.n, 0, 0);
+      ctx.restore();
+    }
   }
 
   function nearestNeighborhood(wx, wy) {
@@ -1551,23 +1583,6 @@
     var s = fitScale * view.scale * dpr;
     ctx.setTransform(s, 0, 0, s, canvas.width / 2 - view.cx * s, canvas.height / 2 - view.cy * s);
 
-    if (minorStreetPath && view.scale >= ZOOM_FOR_MINOR_STREETS) {
-      ctx.save();
-      ctx.strokeStyle = '#d7d0bd';
-      ctx.lineWidth = 1 / s;
-      ctx.stroke(minorStreetPath);
-      ctx.restore();
-    }
-    if (majorStreetPath) {
-      ctx.save();
-      ctx.strokeStyle = '#c2b896';
-      ctx.lineWidth = 2.2 / s;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.stroke(majorStreetPath);
-      ctx.restore();
-    }
-
     for (var t = 0; t < 5; t++) {
       ctx.fillStyle = TIER_COLORS[t];
       ctx.fill(pathsByTier[t]);
@@ -1584,6 +1599,34 @@
       }
       ctx.restore();
     }
+
+    // Streets are drawn ON TOP of the property markers (not underneath): at high zoom
+    // a single marker can cover most of a block, and a street drawn first would simply
+    // be painted over and vanish. A dark semi-transparent casing + light centerline
+    // keeps the line readable whether it crosses cream background or a colored marker.
+    if (minorStreetPath && view.scale >= ZOOM_FOR_MINOR_STREETS) {
+      ctx.save();
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(58,50,38,0.35)';
+      ctx.lineWidth = 1.6 / s;
+      ctx.stroke(minorStreetPath);
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 0.7 / s;
+      ctx.stroke(minorStreetPath);
+      ctx.restore();
+    }
+    if (majorStreetPath) {
+      ctx.save();
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(40,34,24,0.45)';
+      ctx.lineWidth = 3.4 / s;
+      ctx.stroke(majorStreetPath);
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 1.6 / s;
+      ctx.stroke(majorStreetPath);
+      ctx.restore();
+    }
+
     updateActiveNeighborhood();
     if (boundaryPath) {
       ctx.save();
@@ -1592,6 +1635,13 @@
       ctx.setLineDash([6 / s, 4 / s]);
       ctx.stroke(boundaryPath);
       ctx.restore();
+    }
+
+    if (labelsMajor.length && view.scale >= ZOOM_FOR_MAJOR_LABELS) {
+      drawStreetLabels(labelsMajor, s, 12, 3);
+    }
+    if (labelsMinor.length && view.scale >= ZOOM_FOR_MINOR_LABELS) {
+      drawStreetLabels(labelsMinor, s, 10.5, 2.6);
     }
   }
 
