@@ -6,8 +6,18 @@ the parcel markers.
 Two road tiers are fetched separately so they can be simplified and styled
 differently (major roads drawn heavier / labeled more sparsely than minor
 ones):
-  - major: highway in {motorway, trunk, primary}
-  - minor: highway in {secondary, tertiary, residential, unclassified}
+  - major: highway in {motorway, trunk} -- true limited-access freeways/
+    expressways only (~23 named roads in SF: 101, 280, Van Ness, 19th Ave,
+    etc.), always rendered regardless of zoom.
+  - minor: highway in {primary, secondary, tertiary, residential,
+    unclassified}, only rendered once zoomed in.
+
+IMPORTANT: "primary" belongs in the minor tier, not major. OSM's "primary"
+tag covers ordinary arterial streets, not just a handful of key roads --
+including it in the always-rendered major tier (an earlier version of this
+script did) swept in ~1,800 additional street segments that rendered
+unconditionally at every zoom level, creating a dense crosshatch/grid
+artifact across the entire map regardless of how zoomed out the view was.
 
 Each tier's line geometry is simplified with Ramer-Douglas-Peucker (RDP) to
 cut point count while preserving shape, then named ways are used to place
@@ -48,8 +58,8 @@ OUT_PATH = DATA_DIR / "sf-streets.json"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 # Bounding box roughly covering San Francisco city limits plus a small buffer.
 SF_BBOX = (37.70, -122.52, 37.835, -122.35)  # (min_lat, min_lon, max_lat, max_lon)
-MAJOR_HIGHWAY_TAGS = "motorway|trunk|primary"
-MINOR_HIGHWAY_TAGS = "secondary|tertiary|residential|unclassified"
+MAJOR_HIGHWAY_TAGS = "motorway|trunk"
+MINOR_HIGHWAY_TAGS = "primary|secondary|tertiary|residential|unclassified"
 
 LAT0 = 37.7749
 COS_LAT0 = math.cos(math.radians(LAT0))
