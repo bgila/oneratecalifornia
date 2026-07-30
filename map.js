@@ -163,7 +163,7 @@
       var t = tierOf(sfrSubsidy[i]);
       var marker = L.circleMarker([sfrLat[i], sfrLon[i]], {
         renderer: canvasRenderer,
-        radius: 3,
+        radius: 5,
         weight: 0,
         fillColor: TIER_COLORS[t],
         fillOpacity: 0.85,
