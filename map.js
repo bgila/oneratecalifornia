@@ -264,6 +264,7 @@
     var rings = NB_BOUNDARIES && NB_BOUNDARIES[name];
     if (!rings || !rings.length) return;
     boundaryLayer = L.polygon(rings, {
+      renderer: canvasRenderer,
       color: '#1c332e', weight: 2, dashArray: '6 4', fill: false, interactive: false
     }).addTo(map);
   }
