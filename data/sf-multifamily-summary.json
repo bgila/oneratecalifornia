@@ -1,0 +1,33 @@
+{
+  "methodology": {
+    "scope": "Citywide, Multi-Family Residential (actual rental/apartment buildings -- flats, duplexes, apartment buildings; NOT condos, which are already in the single-family/condo dataset)",
+    "market_value_estimation": "Building-level (not per-unit) estimate. Confirmed jump-sales (same >=8%/yr assessed-value-jump test as the single-family dataset, cross-checked against a recorded sale within a year) are averaged into a single $/sqft figure per neighborhood, rather than using individual nearest comps -- multi-family sales are far less frequent, so a per-neighborhood average is more stable than trying to find individual nearby comps. Neighborhoods with fewer than 5 qualifying sales fall back to a $/sqft average pooled from the 5 nearest neighborhoods (by centroid distance) instead. Estimate = neighborhood (or pooled-nearby) avg $/sqft x building's total sqft.",
+    "caveats": "This is a rougher estimate than the single-family/condo model: it values the whole building at once, not individual units, and rests on fewer confirmed sales. It says nothing about individual tenants' rents -- only about the building owner's assessed-vs-market tax gap.",
+    "tax_assumptions": {
+      "current_general_rate_pct": 1.0,
+      "sf_bond_rate_pct": 0.18,
+      "proposed_general_rate_pct": 0.65
+    },
+    "generated": "2026-07-30"
+  },
+  "counts": {
+    "total_parcels": 35196,
+    "jump_confirmed_sales": 2184,
+    "comps_after_filter": 2096,
+    "estimated_rows_written": 35190,
+    "skipped_no_data": 6
+  },
+  "stats": {
+    "subsidy_vs_market_today": {
+      "median": 14875,
+      "mean": 22309,
+      "p90": 47653,
+      "min": -1818183,
+      "max": 2841910
+    },
+    "under_reform": {
+      "would_pay_more": 24525,
+      "would_pay_less": 10665
+    }
+  }
+}
