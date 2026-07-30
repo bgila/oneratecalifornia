@@ -798,8 +798,10 @@
           less frequent: rather than nearest individual comps, every confirmed sale in a neighborhood is
           averaged into one $/sqft figure, applied to every building in that neighborhood. Neighborhoods with
           too few confirmed sales fall back to a $/sqft average pooled from their 5 nearest neighborhoods
-          instead. This values the whole building at once, not individual units — it says nothing about any
-          tenant's actual rent, only about the building owner's assessed-vs-market tax gap.
+          instead. This values the whole building at once, not individual units — the map's per-unit figures
+          simply divide that building-level number evenly across units, which won't match any specific unit's
+          real value. It says nothing about any tenant's actual rent, only about the building owner's
+          assessed-vs-market tax gap.
         </p>
       </details>
     </div>
@@ -1582,18 +1584,23 @@
 
   function showMFPopup(i) {
     popupAddr.textContent = (mfAddr[i] || 'Building') + ' (multi-family)';
+    var units = mfUnits[i];
     var rows = [
-      ['Units', mfUnits[i] ? Math.round(mfUnits[i]).toLocaleString() : '—'],
+      ['Units', units ? Math.round(units).toLocaleString() : '—'],
       ['Building sqft', Math.round(mfSqft[i]).toLocaleString()],
       ['Assessed value', fmtUSD0.format(mfAssessed[i])],
       ['Est. market value', fmtUSD0.format(mfMarket[i])],
-      ['Est. subsidy today', fmtUSD0.format(mfSubsidy[i]) + '/yr'],
-      ['Change under reform', (mfChange[i] >= 0 ? '+' : '') + fmtUSD0.format(mfChange[i]) + '/yr'],
     ];
+    if (units > 0) {
+      rows.push(['Assessed value / unit', fmtUSD0.format(mfAssessed[i] / units)]);
+      rows.push(['Est. market value / unit', fmtUSD0.format(mfMarket[i] / units)]);
+    }
+    rows.push(['Est. subsidy today', fmtUSD0.format(mfSubsidy[i]) + '/yr']);
+    rows.push(['Change under reform', (mfChange[i] >= 0 ? '+' : '') + fmtUSD0.format(mfChange[i]) + '/yr']);
     popupBody.innerHTML = rows.map(function (r) {
       return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>';
     }).join('') + '<dd style="grid-column:1/-1;font-style:italic;font-weight:400;margin-top:0.3rem;text-align:left;">' +
-      'Building-level estimate, not per-unit.</dd>';
+      'Building-level estimate' + (units ? '; per-unit figures divide the whole building evenly' : ', not per-unit') + '.</dd>';
     popupEl.hidden = false;
   }
 
