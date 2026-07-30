@@ -70,7 +70,7 @@
       </div>
       <div class="stat-line">
         <div>
-          <div class="stat-num">~0.65%</div>
+          <div class="stat-num">~0.70%</div>
           <div class="stat-label">proposed general rate, down from 1.00%</div>
         </div>
         <div>
@@ -201,7 +201,7 @@
           14%. It's least reliable at the very top of the market, where a simple nearby-comps approach
           undershoots distinctive, high-end properties. Treat every number here as a rough estimate, not an
           appraisal — county bond rates are held at San Francisco's ~0.18% for simplicity, and the same general
-          tax rates used in the calculator above (1.00% today, ~0.65% proposed) are applied throughout.
+          tax rates used in the calculator above (1.00% today, ~0.70% proposed) are applied throughout.
         </p>
         <p class="faq-answer">
           Multi-family buildings (larger, square markers) use a simpler, rougher method, since actual
@@ -263,9 +263,9 @@
         </div>
         <div class="proposal-card">
           <span class="num" aria-hidden="true">2</span>
-          <h3>Cut the general rate by about a third</h3>
+          <h3>Cut the general rate by about 30%</h3>
           <p>
-            Lower the general property tax rate from 1.00% to roughly two-thirds of 1% (about 0.65%), so that
+            Lower the general property tax rate from 1.00% to about 0.70%, so that
             statewide revenue stays approximately flat once the assessment base widens. This is a rate cut,
             not a new tax.
           </p>
@@ -304,10 +304,11 @@
         anyway.
       </p>
       <p class="small-note">
-        Honest caveat: a 4%-a-year cap closes a small gap quickly, but a very large one slowly — take the
-        1995-purchase example above, and closing that gap through the annual cap alone would take decades. For
-        homes with a gap that big, the deferred amount due at sale is doing most of the real work, not the
-        annual cap. The calculator above shows the fully phased-in bill, not this year's capped payment.
+        Honest caveat: a 4%-a-year cap closes a small gap quickly, but a very large one slowly — for a home
+        bought decades ago in a neighborhood where prices have multiplied several times over, closing that gap
+        through the annual cap alone would take decades. For homes with a gap that big, the deferred amount
+        due at sale is doing most of the real work, not the annual cap. The calculator below shows the fully
+        phased-in bill, not this year's capped payment.
       </p>
     </div>
   </section>
@@ -366,7 +367,7 @@
               <span class="rate-unit">%</span>
             </div>
             <p class="rate-range-note" id="impliedGrowthNote">
-              This implies a statewide assessment-base growth of about <strong id="impliedGrowth">53.8%</strong>
+              This implies a statewide assessment-base growth of about <strong id="impliedGrowth">42.9%</strong>
               relative to today, for the reform to stay revenue-neutral.
             </p>
           </fieldset>
@@ -406,7 +407,7 @@
           rate itself drops by about a third. If you've owned your home a long time in an area where prices
           have risen a lot, your assessed value is probably far below market value, and your bill would
           gradually rise to reflect that. See <a href="#transition">how the increase
-          phases in</a> below.
+          phases in</a> above.
         </p>
       </details>
 
@@ -445,17 +446,43 @@
     <div class="section-inner">
       <h2 id="involved-heading">Get involved</h2>
       <p class="section-lead">
-        Californians for Fair Property Taxes is a new effort, formed in 2026 — we're still building out the
-        campaign. Sign-ups aren't active yet, but this is where updates will go out as the details, and the
-        rest of our plan, come together.
+        Californians for Fair Property Taxes is a new effort, started in 2026 — we're still building out the
+        campaign.
       </p>
-      <form class="signup-form" id="signupForm">
-        <label for="email">Email address</label>
-        <input type="email" id="email" placeholder="you@example.com" autocomplete="off">
-        <button type="submit" class="btn btn-primary">Notify me</button>
-      </form>
-      <p class="form-note">Not active yet — check back soon.</p>
-      <p class="form-status" id="formStatus" role="status"></p>
+
+      <div class="involved-founder">
+        <div class="involved-photo">
+          <img src="assets/barak-photo.jpg" alt="Barak, founder of One Rate California" width="128" height="128">
+        </div>
+        <div class="involved-bio">
+          <p>
+            This project was started by Barak, a San Francisco resident (and homeowner!) fed up with Prop 13.
+            He <a href="https://sfstandard.com/opinion/2024/03/27/yimby-tax-savings/" target="_blank" rel="noopener">donates his own Prop 13 tax break to YIMBY Law</a>.
+            Check out <a href="https://barakgila.com/" target="_blank" rel="noopener">barakgila.com</a> for more of his work.
+          </p>
+          <p class="small-note">
+            This project has not received any external funding and is not yet incorporated; all donations
+            (if any) will be made public.
+          </p>
+        </div>
+      </div>
+
+      <div class="involved-actions">
+        <div class="fieldset-like">
+          <h3>Get updates</h3>
+          <label for="involvedName">Name <span class="hint">(optional)</span></label>
+          <input type="text" id="involvedName" placeholder="Your name" autocomplete="off">
+          <label for="involvedSubstack">Email address</label>
+          <div class="substack-embed-wrap">
+            <iframe id="involvedSubstack" src="https://barak.substack.com/embed" title="Subscribe to Barak's Substack" loading="lazy"></iframe>
+          </div>
+        </div>
+        <div class="fieldset-like involved-contact">
+          <h3>Questions, or want to help?</h3>
+          <p>Reach out directly — we read every message.</p>
+          <a class="btn btn-secondary" id="contactUsBtn" href="mailto:barak.gila@gmail.com">Contact us</a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -464,7 +491,7 @@
 <footer class="site-footer">
   <div class="section-inner">
     <p>
-      Californians for Fair Property Taxes, formed 2026. <span class="brand-name">One Rate California</span>
+      Californians for Fair Property Taxes, started 2026. <span class="brand-name">One Rate California</span>
       is our working campaign name. Figures on this page are illustrative, not official projections.
     </p>
     <p><a class="footer-back" href="https://barakgila.com/">Site design by Barak Gila</a></p>

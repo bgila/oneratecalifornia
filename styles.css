@@ -686,23 +686,56 @@
 
   /* ---------- Get involved ---------- */
   .involved { background: var(--surface-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .signup-form {
-    margin-top: 1.4rem;
-    display: flex;
-    gap: 0.7rem;
-    flex-wrap: wrap;
-    max-width: 32rem;
+  .involved-founder {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.4rem;
+    align-items: start;
+    margin-top: 1.6rem;
   }
-  .signup-form label { font-size: 0.85rem; color: var(--ink-soft); width: 100%; }
-  .signup-form input[type="email"] {
-    flex: 1 1 16rem;
-    padding: 0.65rem 0.8rem;
+  .involved-photo {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    flex: none;
+  }
+  .involved-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .involved-bio p { color: var(--ink-soft); }
+  .involved-bio .small-note { margin-top: 0.7rem; }
+  .involved-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4rem;
+    margin-top: 1.8rem;
+  }
+  .involved-actions .fieldset-like {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem;
+  }
+  .involved-actions h3 { font-size: 1rem; }
+  .involved-actions label { display: block; font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 0.3rem; }
+  .involved-actions input[type="text"] {
+    width: 100%;
+    padding: 0.55rem 0.6rem;
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.95rem;
+    margin-bottom: 0.9rem;
   }
-  .form-note { margin-top: 0.8rem; font-size: 0.82rem; color: var(--ink-soft); }
-  .form-status { margin-top: 0.8rem; font-size: 0.88rem; color: var(--primary-dark); font-weight: 600; }
+  .substack-embed-wrap { margin-top: 0.4rem; }
+  .substack-embed-wrap iframe {
+    width: 100%;
+    height: 150px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .involved-contact { display: flex; flex-direction: column; }
+  .involved-contact p { color: var(--ink-soft); font-size: 0.92rem; margin-bottom: 1rem; }
+  .involved-contact .btn { align-self: flex-start; }
 
   /* ---------- Footer ---------- */
   footer.site-footer {
@@ -729,9 +762,12 @@
 
   @media (max-width: 800px) {
     .proposal-grid { grid-template-columns: 1fr; }
-  
+
     .calc-grid { grid-template-columns: 1fr; }
     .calc-output { position: static; }
+
+    .involved-founder { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .involved-actions { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 700px) {
