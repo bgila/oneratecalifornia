@@ -1272,6 +1272,35 @@
   var nbInfoEl = document.getElementById('sfmap-nbinfo');
   var ZOOM_FOR_AUTO_NEIGHBORHOOD = 3;
 
+  // streets (OpenStreetMap-derived, simplified and projected ahead of time)
+  var majorStreetPath = null, minorStreetPath = null;
+  var ZOOM_FOR_MINOR_STREETS = 6;
+
+  function buildStreetPaths(json) {
+    function toPath(lines) {
+      var p = new Path2D();
+      lines.forEach(function (line) {
+        line.forEach(function (pt, i) {
+          if (i === 0) p.moveTo(pt[0], pt[1]); else p.lineTo(pt[0], pt[1]);
+        });
+      });
+      return p;
+    }
+    majorStreetPath = toPath(json.major || []);
+    minorStreetPath = toPath(json.minor || []);
+  }
+
+  function loadStreets() {
+    fetch('data/sf-streets.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (json) {
+        if (!json) return;
+        buildStreetPaths(json);
+        if (loaded) render();
+      })
+      .catch(function () { /* streets are a visual nice-to-have; map still works without them */ });
+  }
+
   function nearestNeighborhood(wx, wy) {
     if (!NB_PROJECTED) return null;
     var best = null, bestD = Infinity;
@@ -1491,6 +1520,24 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     var s = fitScale * view.scale * dpr;
     ctx.setTransform(s, 0, 0, s, canvas.width / 2 - view.cx * s, canvas.height / 2 - view.cy * s);
+
+    if (minorStreetPath && view.scale >= ZOOM_FOR_MINOR_STREETS) {
+      ctx.save();
+      ctx.strokeStyle = '#d7d0bd';
+      ctx.lineWidth = 1 / s;
+      ctx.stroke(minorStreetPath);
+      ctx.restore();
+    }
+    if (majorStreetPath) {
+      ctx.save();
+      ctx.strokeStyle = '#c2b896';
+      ctx.lineWidth = 2.2 / s;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke(majorStreetPath);
+      ctx.restore();
+    }
+
     for (var t = 0; t < 5; t++) {
       ctx.fillStyle = TIER_COLORS[t];
       ctx.fill(pathsByTier[t]);
@@ -1854,6 +1901,7 @@
     loading = true;
     loadNeighborhoodExtras();
     loadMFData();
+    loadStreets();
     fetch('data/sf-map-data.csv')
       .then(function (r) {
         if (!r.ok) throw new Error('fetch failed: ' + r.status);
