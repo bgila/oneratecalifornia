@@ -31,7 +31,10 @@
   }
 
   // ---------- map + basemap ----------
-  var map = L.map(mapEl, { preferCanvas: true }).setView([37.7627, -122.4494], 12.4);
+  var map = L.map(mapEl, { preferCanvas: true, zoomControl: false }).setView([37.7627, -122.4494], 12.4);
+  // Default zoom control sits top-left, which collides with our legend panel there --
+  // move it to top-right instead.
+  L.control.zoom({ position: 'topright' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
@@ -158,38 +161,70 @@
     return written;
   }
 
+  // Marker size scales with zoom: a fixed pixel radius that looks reasonable zoomed
+  // out (whole city) is a much-too-small click target once zoomed in on a single
+  // block, since Leaflet's circleMarker hit-test is tied directly to the rendered
+  // radius (no separate invisible click-tolerance buffer available). At the highest
+  // zoom levels this roughly doubles the radius (~4x the click area) vs. the
+  // city-wide default.
+  function sfrRadiusForZoom(z) {
+    if (z >= 18) return 10;
+    if (z >= 16) return 8;
+    if (z >= 14) return 6;
+    return 4;
+  }
+  function mfRadiusForZoom(z) {
+    if (z >= 18) return 14;
+    if (z >= 16) return 11;
+    if (z >= 14) return 8;
+    return 6;
+  }
+
   function buildSFRMarkers(count) {
+    var r = sfrRadiusForZoom(map.getZoom());
     for (var i = 0; i < count; i++) {
       var t = tierOf(sfrSubsidy[i]);
       var marker = L.circleMarker([sfrLat[i], sfrLon[i]], {
         renderer: canvasRenderer,
-        radius: 5,
+        radius: r,
         weight: 0,
         fillColor: TIER_COLORS[t],
         fillOpacity: 0.85,
       });
-      marker.bindPopup(makeSFRPopupFn(i), { maxWidth: 280 });
+      marker.bindPopup(makeSFRPopupFn(i), { maxWidth: popupMaxWidth() });
       marker.addTo(sfrLayer);
     }
   }
   function makeSFRPopupFn(i) { return function () { return sfrPopupHtml(i); }; }
 
   function buildMFMarkers(count) {
+    var r = mfRadiusForZoom(map.getZoom());
     for (var i = 0; i < count; i++) {
       var t = tierOf(mfSubsidy[i]);
       var marker = L.circleMarker([mfLat[i], mfLon[i]], {
         renderer: canvasRenderer,
-        radius: 6,
+        radius: r,
         weight: 2,
         color: '#fff',
         fillColor: TIER_COLORS[t],
         fillOpacity: 0.9,
       });
-      marker.bindPopup(makeMFPopupFn(i), { maxWidth: 280 });
+      marker.bindPopup(makeMFPopupFn(i), { maxWidth: popupMaxWidth() });
       marker.addTo(mfLayer);
     }
   }
   function makeMFPopupFn(i) { return function () { return mfPopupHtml(i); }; }
+
+  function popupMaxWidth() {
+    return Math.min(280, window.innerWidth - 48);
+  }
+
+  map.on('zoomend', function () {
+    var sr = sfrRadiusForZoom(map.getZoom());
+    var mr = mfRadiusForZoom(map.getZoom());
+    sfrLayer.eachLayer(function (m) { m.setRadius(sr); });
+    mfLayer.eachLayer(function (m) { m.setRadius(mr); });
+  });
 
   mfToggle.addEventListener('change', function () {
     if (mfToggle.checked) { map.addLayer(mfLayer); } else { map.removeLayer(mfLayer); }

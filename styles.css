@@ -341,7 +341,7 @@
   .sfmap-nbinfo {
     position: absolute;
     left: 50%;
-    top: 0.8rem;
+    bottom: 0.8rem;
     z-index: 1000;
     transform: translateX(-50%);
     background: rgba(255,255,255,0.94);
@@ -660,9 +660,12 @@
     .vs-divider { padding: 0.2rem 0; }
   
     .sfmap-wrap { height: 440px; }
-    .sfmap-legend { font-size: 0.72rem; padding: 0.5rem 0.6rem; }
+    .sfmap-legend { font-size: 0.68rem; padding: 0.4rem 0.55rem; line-height: 1.35; max-width: 45vw; }
+    .sfmap-legend .swatch { width: 0.6rem; height: 0.6rem; margin-right: 0.3rem; }
+    .sfmap-legend .legend-sep { margin-top: 0.25rem; padding-top: 0.25rem; }
     .sfmap-nbinfo { white-space: normal; max-width: 80%; font-size: 0.78rem; }
     .sfmap-search-wrap input[type="search"] { width: 100%; }
+    .leaflet-control-zoom { transform: scale(0.9); transform-origin: top right; }
   
     .map-embed-wrap { height: 480px; }
   }
