@@ -30,6 +30,17 @@
     return 4;
   }
 
+  // Leaflet's canvas circleMarker hit-test (used for both click AND the
+  // pointer-cursor-on-hover effect) only adds extra click tolerance on touch
+  // devices -- on desktop the clickable area is exactly the visible dot, pixel for
+  // pixel. With markers this small/dense that means the cursor essentially never
+  // lands inside the target, so it never flips from the map's default "grab" cursor
+  // to a pointer and clicks routinely miss. Give every circleMarker a generous
+  // invisible hit-tolerance buffer on top of its visible radius, regardless of device.
+  L.CircleMarker.include({
+    _clickTolerance: function () { return 10; }
+  });
+
   // ---------- map + basemap ----------
   var map = L.map(mapEl, { preferCanvas: true, zoomControl: false }).setView([37.7627, -122.4494], 12.4);
   // Default zoom control sits top-left, which collides with our legend panel there --
