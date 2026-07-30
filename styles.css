@@ -38,9 +38,9 @@
        so the legend swatches below and the canvas rendering can never drift apart. */
     --tier-0: #4a6c8c; /* pays more than market rate */
     --tier-1: #ead9ad; /* $0 - 5k */
-    --tier-2: #c9a256; /* $5k - 15k */
-    --tier-3: #a15a2e; /* $15k - 30k */
-    --tier-4: #8a3a24; /* $30k + */
+    --tier-2: #dca482; /* $5k - 15k */
+    --tier-3: #ce6e56; /* $15k - 30k */
+    --tier-4: #c0392b; /* $30k + -- highest subsidy, clearly red */
     --mf-indicator: #5b6169; /* legend-only: "this shape = multi-family", not a data tier */
   }
 

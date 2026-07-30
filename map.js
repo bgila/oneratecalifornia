@@ -200,7 +200,7 @@
   function buildMFMarkers(count) {
     var r = mfRadiusForZoom(map.getZoom());
     for (var i = 0; i < count; i++) {
-      var t = tierOf(mfSubsidy[i]);
+      var t = tierOf(mfUnits[i] > 0 ? mfSubsidy[i] / mfUnits[i] : mfSubsidy[i]);
       var marker = L.circleMarker([mfLat[i], mfLon[i]], {
         renderer: canvasRenderer,
         radius: r,
