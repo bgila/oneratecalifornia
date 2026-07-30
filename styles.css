@@ -104,12 +104,22 @@
     gap: 0.75rem;
   }
   .wordmark {
-    font-family: var(--font-serif);
-    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
     font-size: 1.1rem;
     letter-spacing: 0.02em;
     color: var(--primary-dark);
     text-decoration: none;
+  }
+  .wordmark-logo {
+    display: block;
+    width: 32px;
+    height: 36px;
+  }
+  .wordmark .brand-name {
+    font-family: "League Spartan", var(--font-sans);
+    font-weight: 600;
   }
   .wordmark small {
     display: block;
