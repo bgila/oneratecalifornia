@@ -11,8 +11,10 @@ assessed value jumped far more than Prop 13's ~2%/yr inflation cap allows,
 cross-checks that jump against a recorded sale date nearby in time, and
 treats the resulting post-jump assessed value as a real price signal
 ("jump-confirmed comp"). Nearby jump-confirmed comps are then used to
-estimate market value for every other parcel. Street geometry for the map's
-basemap comes from OpenStreetMap via the Overpass API.
+estimate market value for every other parcel. The map itself is Leaflet
+with a standard OpenStreetMap tile basemap (real streets, parks, coastline,
+labels -- all provided by the tiles), with parcels overlaid as colored
+circle markers; there's no custom street-geometry pipeline anymore.
 
 ## Requirements
 
@@ -20,9 +22,9 @@ basemap comes from OpenStreetMap via the Overpass API.
 pip install -r requirements.txt
 ```
 
-Only non-stdlib dependency across all 11 scripts: **numpy**. No API keys
-are needed anywhere in this pipeline -- DataSF's Socrata endpoints and the
-Overpass API are both open to the public (rate-limited, not key-gated).
+Only non-stdlib dependency across all scripts: **numpy**. No API keys are
+needed anywhere in this pipeline -- DataSF's Socrata endpoints are open to
+the public (rate-limited, not key-gated).
 
 ## Running the pipeline
 
@@ -38,24 +40,21 @@ python3 06_process_mfr.py
 python3 07_make_map_data_sfr.py
 python3 08_make_map_data_mfr.py
 python3 09_build_neighborhoods.py
-python3 10_build_streets.py
-python3 11_validate_accuracy.py
+python3 10_validate_accuracy.py
 ```
 
-The full run touches the DataSF API for ~250MB of parcel/history JSON and
-the Overpass API for OSM road geometry -- expect it to take on the order of
-15-30 minutes depending on network conditions and Overpass's public-server
-load.
+The full run touches the DataSF API for ~250MB of parcel/history JSON --
+expect it to take on the order of 10-20 minutes depending on network
+conditions.
 
 Raw fetches and full (non-slim) intermediate CSVs are written to
 `pipeline/tmp/`, which is gitignored -- nothing in there is committed. Only
-the four small artifacts the live page actually fetches are written to
+the three small artifacts the live page actually fetches are written to
 `../data/` and committed:
 
 - `data/sf-map-data.csv`
 - `data/sf-map-data-mf.csv`
 - `data/sf-neighborhoods.json`
-- `data/sf-streets.json`
 
 ### Dependency graph -- what reads what
 
@@ -70,13 +69,11 @@ the four small artifacts the live page actually fetches are written to
 | `07_make_map_data_sfr.py` | `tmp/sf-citywide-sfr-full.csv` | `../data/sf-map-data.csv` |
 | `08_make_map_data_mfr.py` | `tmp/sf-multifamily-full.csv` | `../data/sf-map-data-mf.csv` |
 | `09_build_neighborhoods.py` | `tmp/sf-citywide-sfr-full.csv` | `../data/sf-neighborhoods.json` |
-| `10_build_streets.py` | network (Overpass) | `tmp/major_roads_raw.json`, `tmp/minor_roads_raw.json`, `../data/sf-streets.json` |
-| `11_validate_accuracy.py` | `tmp/sfr_history_2020_2025.json`, `tmp/sf-citywide-sfr-full.csv` | stdout only |
+| `10_validate_accuracy.py` | `tmp/sfr_history_2020_2025.json`, `tmp/sf-citywide-sfr-full.csv` | stdout only |
 
 Because `06_process_mfr.py` derives its neighborhood centroids from the
 single-family CSV rather than a separate file, it must run after
-`03_process_sfr.py` (as reflected in the numbering). `10_build_streets.py`
-is fully independent of the parcel data and can run any time.
+`03_process_sfr.py` (as reflected in the numbering).
 
 ## Methodology at a glance
 
@@ -108,7 +105,7 @@ sales, 2,096 comps survive outlier filtering, 35,210 rows estimated,
 - Subsidy distribution: median $14,879, mean $22,935, p90 $47,764.
 - Under the modeled reform: 24,534 buildings would pay more, 10,676 less.
 
-**Validation** (`11_validate_accuracy.py`): parcels with a jump-confirmed
+**Validation** (`10_validate_accuracy.py`): parcels with a jump-confirmed
 sale specifically in 2024 or 2025 have an essentially-known true value, so
 comparing the model's own `est_market_value` for those same parcels against
 that truth is a clean leave-one-out accuracy check (3,983 such parcels,

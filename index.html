@@ -6,6 +6,8 @@
 <meta name="description" content="A revenue-neutral reform of Prop 13 that assesses property consistently at market value and cuts the general tax rate by about a third.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 </head>
 <body>
 
@@ -69,8 +71,9 @@
       <p class="section-lead">
         Every one of San Francisco's roughly 154,000 single-family homes and condos, plus ~35,000 multi-family
         buildings, built from the city's own current public assessment records rather than a third party's —
-        so it's specific to San Francisco, but newer than the map above. Squares are individual homes/condos;
-        diamonds are whole apartment/rental buildings, colored by estimated property tax subsidy either way.
+        so it's specific to San Francisco, but newer than the map above. Small circles are individual
+        homes/condos; larger white-ringed circles are whole apartment/rental buildings, colored by estimated
+        property tax subsidy either way.
       </p>
       <div class="sfmap-controls">
         <label for="sfmap-neighborhood" class="hint">Jump to:</label>
@@ -89,7 +92,7 @@
         <span class="sfmap-count" id="sfmap-count">Loading…</span>
       </div>
       <div class="sfmap-wrap">
-        <canvas id="sfmap-canvas" role="img" aria-label="Map of San Francisco properties colored by estimated property tax subsidy"></canvas>
+        <div id="sfmap-leaflet" role="img" aria-label="Map of San Francisco properties colored by estimated property tax subsidy"></div>
         <div class="sfmap-legend" aria-hidden="true">
           <span class="legend-title">Est. yearly subsidy</span>
           <div><span class="swatch swatch-tier-0"></span>pays more than market rate</div>
@@ -97,27 +100,16 @@
           <div><span class="swatch swatch-tier-2"></span>$5k – 15k</div>
           <div><span class="swatch swatch-tier-3"></span>$15k – 30k</div>
           <div><span class="swatch swatch-tier-4"></span>$30k +</div>
-          <div class="legend-sep"><span class="swatch diamond swatch-mf-indicator"></span>◆ = multi-family building</div>
+          <div class="legend-sep"><span class="swatch swatch-mf-indicator"></span>white ring = multi-family building</div>
         </div>
         <div class="sfmap-nbinfo" id="sfmap-nbinfo" hidden></div>
-        <div class="sfmap-zoom-controls">
-          <button type="button" id="sfmap-zoom-in" aria-label="Zoom in">+</button>
-          <button type="button" id="sfmap-zoom-out" aria-label="Zoom out">−</button>
-        </div>
-        <div class="sfmap-popup" id="sfmap-popup" hidden>
-          <div class="sfmap-popup-header">
-            <h4 id="sfmap-popup-addr"></h4>
-            <button type="button" class="popup-close" id="sfmap-popup-close" aria-label="Close details">✕</button>
-          </div>
-          <dl id="sfmap-popup-body"></dl>
-        </div>
         <div class="sfmap-loading" id="sfmap-loading">Loading ~190,000 properties…</div>
       </div>
       <p class="sfmap-hint">
         Drag to pan, scroll or double-click/pinch to zoom, click any home for its numbers. Zoom in (or pick a
-        neighborhood above) to see its boundary and average subsidy. Street data ©
+        neighborhood above) to see its boundary and average subsidy. Map data ©
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
-        contributors, ODbL.
+        contributors.
       </p>
 
       <details class="sfmap-methodology">
@@ -143,8 +135,9 @@
           tax rates used in the calculator above (1.00% today, ~0.65% proposed) are applied throughout.
         </p>
         <p class="faq-answer">
-          Multi-family buildings (diamonds) use a simpler, rougher method, since actual building sales are much
-          less frequent: rather than nearest individual comps, every confirmed sale in a neighborhood is
+          Multi-family buildings (larger, white-ringed circles) use a simpler, rougher method, since actual
+          building sales are much less frequent: rather than nearest individual comps, every confirmed sale in
+          a neighborhood is
           averaged into one $/sqft figure, applied to every building in that neighborhood. Neighborhoods with
           too few confirmed sales fall back to a $/sqft average pooled from their 5 nearest neighborhoods
           instead. This values the whole building at once, not individual units — the map's per-unit figures

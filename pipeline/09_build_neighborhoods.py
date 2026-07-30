@@ -15,9 +15,14 @@ neighborhood while dropping single-cell noise) is kept, capped at 4 rings.
 Reads:  pipeline/tmp/sf-citywide-sfr-full.csv (03_process_sfr.py)
 Writes: data/sf-neighborhoods.json (committed -- fetched by index.html), with:
           - "avg_subsidy":  {neighborhood -> mean subsidy_vs_market_today}
-          - "boundaries":   {neighborhood -> [ring, ...]}, each ring a list of [x,y]
-                            polygon points in the same projected coordinate
-                            space the map already uses for street data
+          - "boundaries":   {neighborhood -> [ring, ...]}, each ring a list of
+                            [lat, lon] polygon points -- the map overlays these
+                            directly as Leaflet polygons, so they're plain
+                            lat/lon, not any custom projection. Boundary
+                            tracing itself is still done in an internal
+                            equirectangular projection (grid-cell math is
+                            tuned in that unit space); rings are converted
+                            back to lat/lon only in the final output step.
           - "centroids":    {neighborhood -> [lat, lon]}, mean parcel lat/lon,
                             used by the map for neighborhood label placement
 """
@@ -41,6 +46,12 @@ COS_LAT0 = math.cos(math.radians(LAT0))
 
 def project(lat, lon):
     return ((lon + 122.4194) * COS_LAT0, -(lat - LAT0))
+
+
+def unproject(x, y):
+    lon = x / COS_LAT0 - 122.4194
+    lat = LAT0 - y
+    return lat, lon
 
 
 CELL = 0.0028  # world-units grid cell (~ a few hundred feet), tuned for tracing
@@ -155,7 +166,9 @@ def main():
         biggest = rings_world[0][0]
         kept = [rings_world[0][1]] + [r[1] for r in rings_world[1:] if r[0] >= biggest * 0.08]
         kept = kept[:4]
-        result[nb] = kept
+        # convert each ring from the internal projection to plain [lat, lon] for Leaflet
+        kept_latlon = [[list(unproject(x, y)) for x, y in ring] for ring in kept]
+        result[nb] = kept_latlon
 
     with open(OUT, "w") as f:
         json.dump({"avg_subsidy": avg_subsidy, "boundaries": result, "centroids": centroids}, f)

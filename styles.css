@@ -342,6 +342,7 @@
     position: absolute;
     left: 50%;
     top: 0.8rem;
+    z-index: 1000;
     transform: translateX(-50%);
     background: rgba(255,255,255,0.94);
     border: 1px solid var(--border);
@@ -364,17 +365,14 @@
     background: var(--surface-alt);
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
-  .sfmap-wrap canvas {
+  #sfmap-leaflet {
     width: 100%;
     height: 100%;
-    display: block;
-    cursor: grab;
-    touch-action: none;
   }
-  .sfmap-wrap canvas:active { cursor: grabbing; }
   .sfmap-loading {
     position: absolute;
     inset: 0;
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -382,10 +380,13 @@
     color: var(--ink-soft);
     background: var(--surface-alt);
   }
+  /* z-index: 1000+ on our custom overlays -- Leaflet's own panes/controls use z-index
+     up to ~650 internally, so anything above that stays reliably on top of the map. */
   .sfmap-legend {
     position: absolute;
     left: 0.8rem;
     top: 0.8rem;
+    z-index: 1000;
     background: rgba(255,255,255,0.92);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -402,14 +403,18 @@
     margin-right: 0.4rem;
     vertical-align: middle;
   }
-  .sfmap-legend .swatch.diamond { transform: rotate(45deg); border-radius: 1px; }
   .sfmap-legend .legend-sep { margin-top: 0.35rem; padding-top: 0.35rem; border-top: 1px dashed var(--border); }
-  .swatch-tier-0 { background: var(--tier-0); }
-  .swatch-tier-1 { background: var(--tier-1); }
-  .swatch-tier-2 { background: var(--tier-2); }
-  .swatch-tier-3 { background: var(--tier-3); }
-  .swatch-tier-4 { background: var(--tier-4); }
-  .swatch-mf-indicator { background: var(--mf-indicator); }
+  .swatch-tier-0 { background: var(--tier-0); border-radius: 50%; }
+  .swatch-tier-1 { background: var(--tier-1); border-radius: 50%; }
+  .swatch-tier-2 { background: var(--tier-2); border-radius: 50%; }
+  .swatch-tier-3 { background: var(--tier-3); border-radius: 50%; }
+  .swatch-tier-4 { background: var(--tier-4); border-radius: 50%; }
+  .swatch-mf-indicator {
+    background: var(--mf-indicator);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--border);
+    border-radius: 50%;
+  }
   .sfmap-toggle {
     display: inline-flex;
     align-items: center;
@@ -419,69 +424,15 @@
     cursor: pointer;
   }
   .sfmap-toggle input { margin: 0; }
-  .sfmap-zoom-controls {
-    position: absolute;
-    right: 0.8rem;
-    top: 0.8rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-  .sfmap-zoom-controls button {
-    width: 2rem; height: 2rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: rgba(255,255,255,0.92);
-    color: var(--ink);
-    font-size: 1.1rem;
-    line-height: 1;
-    cursor: pointer;
-  }
-  .sfmap-zoom-controls button:hover { background: var(--surface-alt); }
-  .sfmap-popup {
-    position: absolute;
-    left: 0.8rem;
-    right: 0.8rem;
-    bottom: 0.8rem;
-    top: 0.8rem;
-    background: rgba(255,255,255,0.97);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.9rem 1.1rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    max-width: 26rem;
-    height: fit-content;
-    max-height: 100%;
-    overflow-y: auto;
-  }
-  .sfmap-popup[hidden] { display: none; }
-  .sfmap-popup-header {
-    position: sticky;
-    top: -0.9rem;
-    margin: -0.9rem -1.1rem 0.4rem;
-    padding: 0.9rem 1.1rem 0.4rem;
-    background: rgba(255,255,255,0.97);
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.6rem;
-    z-index: 1;
-  }
-  .sfmap-popup .popup-close {
-    flex: none;
-    border: none;
-    background: none;
-    font-size: 1rem;
-    color: var(--ink-soft);
-    cursor: pointer;
-    line-height: 1;
-    padding: 0.15rem;
-  }
-  .sfmap-popup h4 { font-family: var(--font-serif); font-size: 1rem; color: var(--primary-dark); margin: 0; }
-  .sfmap-popup dl { display: grid; grid-template-columns: auto auto; gap: 0.15rem 0.8rem; font-size: 0.85rem; }
-  .sfmap-popup dt { color: var(--ink-soft); }
-  .sfmap-popup dd { font-weight: 600; text-align: right; }
-  .sfmap-popup dd.popup-footnote {
+
+  /* Leaflet supplies its own popup chrome (box, close button, positioning) -- we only
+     style the content we feed into bindPopup(), via .leaflet-popup-content's children. */
+  .leaflet-popup-content { font-family: var(--font-sans); }
+  .sfmap-popup-title { font-family: var(--font-serif); font-size: 1rem; color: var(--primary-dark); margin: 0 0 0.4rem; }
+  .sfmap-popup-dl { display: grid; grid-template-columns: auto auto; gap: 0.15rem 0.8rem; font-size: 0.85rem; margin: 0; }
+  .sfmap-popup-dl dt { color: var(--ink-soft); }
+  .sfmap-popup-dl dd { font-weight: 600; text-align: right; margin: 0; }
+  .sfmap-popup-footnote {
     grid-column: 1 / -1;
     font-style: italic;
     font-weight: 400;
