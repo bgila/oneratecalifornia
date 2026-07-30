@@ -181,7 +181,7 @@ draw_choropleth(
     "Average per-home subsidy, as % of market value's fair-share tax",
     "avg % subsidy",
     OUT_DIR / "neighborhood_pct_subsidy_map.png",
-    "RdYlGn",
+    "cividis",
     lambda v, _: f"{v:.0f}%",
 )
 draw_choropleth(
@@ -189,6 +189,6 @@ draw_choropleth(
     "Average per-home subsidy, in dollars/year",
     "avg $ subsidy / home / yr",
     OUT_DIR / "neighborhood_dollar_subsidy_map.png",
-    "RdYlGn",
+    "cividis",
     lambda v, _: f"${v:,.0f}",
 )
