@@ -70,6 +70,7 @@ the three small artifacts the live page actually fetches are written to
 | `08_make_map_data_mfr.py` | `tmp/sf-multifamily-full.csv` | `../data/sf-map-data-mf.csv` |
 | `09_build_neighborhoods.py` | `tmp/sf-citywide-sfr-full.csv` | `../data/sf-neighborhoods.json` |
 | `10_validate_accuracy.py` | `tmp/sfr_history_2020_2025.json`, `tmp/sf-citywide-sfr-full.csv` | stdout only |
+| `11_neighborhood_subsidy_stats.py` | `../data/sf-map-data.csv`, `../data/sf-map-data-mf.csv`, `../data/sf-neighborhoods.json` | `../analysis/neighborhood-subsidy-stats.csv`, `../analysis/neighborhood_pct_subsidy_map.png`, `../analysis/neighborhood_dollar_subsidy_map.png` |
 
 Because `06_process_mfr.py` derives its neighborhood centroids from the
 single-family CSV rather than a separate file, it must run after
