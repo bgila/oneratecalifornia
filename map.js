@@ -13,7 +13,40 @@
   var searchInput = document.getElementById('sfmap-search');
   var searchResults = document.getElementById('sfmap-search-results');
 
+  var mapPanelEl = document.getElementById('sfmap-panel-map');
+  var tfpPanelEl = document.getElementById('sfmap-panel-tfp');
+  var tabButtons = document.querySelectorAll('.sfmap-tab');
+  var extraHomesEl = document.getElementById('sfmap-extra-homes');
+  var extraNbEl = document.getElementById('sfmap-extra-neighborhoods');
+  var legendHomesEl = document.getElementById('sfmap-legend-homes');
+  var legendNbEl = document.getElementById('sfmap-legend-neighborhoods');
+  var legendNbTitleEl = document.getElementById('sfmap-legend-nb-title');
+  var legendNbMinEl = document.getElementById('sfmap-legend-nb-min');
+  var legendNbMaxEl = document.getElementById('sfmap-legend-nb-max');
+  var hintHomesEl = document.getElementById('sfmap-hint-homes');
+  var hintNbEl = document.getElementById('sfmap-hint-neighborhoods');
+  var methodHomesEl = document.getElementById('sfmap-methodology-homes');
+  var methodNbEl = document.getElementById('sfmap-methodology-neighborhoods');
+  var methodTfpEl = document.getElementById('sfmap-methodology-tfp');
+  var metricButtons = document.querySelectorAll('.metric-btn');
+
   var fmtUSD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+  // Parchment (lowest) to dark forest green (highest) -- same single-hue lightness
+  // ramp as the offline neighborhood-subsidy analysis maps (pipeline/11), so the
+  // live neighborhood-averages tab matches them exactly. Deliberately not a
+  // red-green diverging scale.
+  var GRADIENT_STOPS = [[239, 233, 218], [91, 125, 99], [27, 51, 46]];
+  function gradientColor(t) {
+    t = Math.max(0, Math.min(1, isFinite(t) ? t : 0.5));
+    var seg = t < 0.5 ? 0 : 1;
+    var localT = t < 0.5 ? t / 0.5 : (t - 0.5) / 0.5;
+    var c0 = GRADIENT_STOPS[seg], c1 = GRADIENT_STOPS[seg + 1];
+    var r = Math.round(c0[0] + (c1[0] - c0[0]) * localT);
+    var g = Math.round(c0[1] + (c1[1] - c0[1]) * localT);
+    var b = Math.round(c0[2] + (c1[2] - c0[2]) * localT);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
 
   // Tier colors: single source of truth is styles.css (--tier-0..4), read here at load
   // time so the legend swatches and the map markers can never silently drift apart.
@@ -43,6 +76,29 @@
   // Shared canvas renderer so all circleMarkers batch onto one canvas layer instead of
   // each getting its own DOM node -- essential at this point count (~190k).
   var canvasRenderer = L.canvas({ padding: 0.5 });
+
+  // Multi-family buildings render as squares instead of circles (shape, not a rim
+  // color, differentiates them now) -- Leaflet's canvas renderer has no built-in
+  // square marker, so draw one directly for any circleMarker flagged
+  // `squareMarker: true`, falling back to the normal circle draw otherwise. Hit-test
+  // is similarly overridden to an axis-aligned box so the clickable area matches
+  // what's drawn.
+  var origUpdateCircle = L.Canvas.prototype._updateCircle;
+  L.Canvas.prototype._updateCircle = function (layer) {
+    if (!layer.options.squareMarker) { return origUpdateCircle.call(this, layer); }
+    if (!this._drawing || layer._empty()) { return; }
+    var p = layer._point, ctx = this._ctx, r = Math.max(Math.round(layer._radius), 1);
+    ctx.beginPath();
+    ctx.rect(p.x - r, p.y - r, r * 2, r * 2);
+    this._fillStroke(ctx, layer);
+  };
+  var origContainsPoint = L.CircleMarker.prototype._containsPoint;
+  L.CircleMarker.prototype._containsPoint = function (p) {
+    if (!this.options.squareMarker) { return origContainsPoint.call(this, p); }
+    var r = this._radius;
+    return Math.abs(p.x - this._point.x) <= r && Math.abs(p.y - this._point.y) <= r;
+  };
+
   var sfrLayer = L.layerGroup().addTo(map);
   var mfLayer = L.layerGroup().addTo(map);
 
@@ -204,8 +260,8 @@
       var marker = L.circleMarker([mfLat[i], mfLon[i]], {
         renderer: canvasRenderer,
         radius: r,
-        weight: 2,
-        color: '#fff',
+        weight: 0,
+        squareMarker: true,
         fillColor: TIER_COLORS[t],
         fillOpacity: 0.9,
       });
@@ -231,10 +287,11 @@
   });
 
   // ---------- neighborhoods: boundaries, avg subsidy, dropdown, centroids ----------
-  var NB_BOUNDARIES = null, NB_AVG_SUBSIDY = null, NB_CENTROIDS = null;
+  var NB_BOUNDARIES = null, NB_AVG_SUBSIDY = null, NB_AVG_PCT_SUBSIDY = null, NB_CENTROIDS = null;
   var activeNeighborhood = null, neighborhoodPinned = false;
   var boundaryLayer = null;
   var ZOOM_FOR_AUTO_NEIGHBORHOOD = 14;
+  var activeTab = 'homes';
 
   function nearestNeighborhood(lat, lon) {
     if (!NB_CENTROIDS) return null;
@@ -259,7 +316,7 @@
   }
 
   function updateActiveNeighborhood() {
-    if (!NB_CENTROIDS) return;
+    if (!NB_CENTROIDS || activeTab === 'neighborhoods') return;
     var target = null;
     if (neighborhoodPinned) {
       target = activeNeighborhood;
@@ -306,6 +363,7 @@
         if (!json) return;
         NB_BOUNDARIES = json.boundaries;
         NB_AVG_SUBSIDY = json.avg_subsidy;
+        NB_AVG_PCT_SUBSIDY = json.avg_pct_subsidy;
         NB_CENTROIDS = json.centroids || {};
         Object.keys(NB_CENTROIDS).sort().forEach(function (name) {
           var opt = document.createElement('option');
@@ -314,9 +372,102 @@
           opt.textContent = name;
           nbSelect.appendChild(opt);
         });
+        buildNeighborhoodFillLayer();
       })
       .catch(function () { /* boundaries/dropdown are a nice-to-have; map still works without them */ });
   }
+
+  // ---------- neighborhood-averages tab: filled polygons + text labels ----------
+  var nbFillLayer = L.layerGroup();
+  var nbFillRefs = []; // [{ name, layer }]
+  var currentMetric = 'dollar';
+
+  function formatMetric(metric, value) {
+    if (value === undefined || value === null) return '—';
+    return metric === 'pct' ? Math.round(value) + '%' : fmtUSD0.format(value);
+  }
+
+  function buildNeighborhoodFillLayer() {
+    if (!NB_BOUNDARIES || !NB_AVG_SUBSIDY || nbFillRefs.length) return;
+    Object.keys(NB_BOUNDARIES).forEach(function (name) {
+      var rings = NB_BOUNDARIES[name];
+      if (!rings || !rings.length) return;
+      var layer = L.polygon(rings, {
+        renderer: canvasRenderer,
+        color: '#33332e', weight: 1, fillOpacity: 0.85, interactive: false
+      });
+      layer.bindTooltip('', { permanent: true, direction: 'center', className: 'nb-label' });
+      layer.addTo(nbFillLayer);
+      nbFillRefs.push({ name: name, layer: layer });
+    });
+    applyNeighborhoodMetric(currentMetric);
+    if (activeTab === 'neighborhoods') { nbFillLayer.addTo(map); }
+  }
+
+  function applyNeighborhoodMetric(metric) {
+    currentMetric = metric;
+    var dict = metric === 'pct' ? NB_AVG_PCT_SUBSIDY : NB_AVG_SUBSIDY;
+    if (!dict) return;
+    var values = nbFillRefs.map(function (ref) { return dict[ref.name]; }).filter(function (v) { return v !== undefined; });
+    var vmin = Math.min.apply(null, values), vmax = Math.max.apply(null, values);
+    nbFillRefs.forEach(function (ref) {
+      var v = dict[ref.name];
+      var t = (v === undefined) ? 0.5 : (vmax > vmin ? (v - vmin) / (vmax - vmin) : 0.5);
+      ref.layer.setStyle({ fillColor: gradientColor(t) });
+      ref.layer.setTooltipContent(formatMetric(metric, v));
+    });
+    legendNbTitleEl.textContent = metric === 'pct' ? 'Avg. % subsidy' : 'Avg. $ subsidy / home';
+    legendNbMinEl.textContent = formatMetric(metric, vmin);
+    legendNbMaxEl.textContent = formatMetric(metric, vmax);
+  }
+
+  metricButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      metricButtons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyNeighborhoodMetric(btn.getAttribute('data-metric'));
+    });
+  });
+
+  // ---------- map view tabs ----------
+  function setActiveTab(tab) {
+    activeTab = tab;
+    tabButtons.forEach(function (btn) {
+      var isActive = btn.getAttribute('data-tab') === tab;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    mapPanelEl.hidden = tab === 'tfp';
+    tfpPanelEl.hidden = tab !== 'tfp';
+    extraHomesEl.hidden = tab !== 'homes';
+    extraNbEl.hidden = tab !== 'neighborhoods';
+    legendHomesEl.hidden = tab !== 'homes';
+    legendNbEl.hidden = tab !== 'neighborhoods';
+    hintHomesEl.hidden = tab !== 'homes';
+    hintNbEl.hidden = tab !== 'neighborhoods';
+    methodHomesEl.hidden = tab !== 'homes';
+    methodNbEl.hidden = tab !== 'neighborhoods';
+    methodTfpEl.hidden = tab !== 'tfp';
+
+    if (tab === 'homes') {
+      map.addLayer(sfrLayer);
+      if (mfToggle.checked) map.addLayer(mfLayer);
+      map.removeLayer(nbFillLayer);
+    } else if (tab === 'neighborhoods') {
+      map.removeLayer(sfrLayer);
+      map.removeLayer(mfLayer);
+      if (nbFillRefs.length) map.addLayer(nbFillLayer);
+      nbInfoEl.hidden = true;
+      if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
+    }
+    if (tab !== 'tfp') {
+      setTimeout(function () { map.invalidateSize(); }, 0);
+    }
+  }
+
+  tabButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () { setActiveTab(btn.getAttribute('data-tab')); });
+  });
 
   // ---------- address search ----------
   var searchTimer = null, searchMatches = [];

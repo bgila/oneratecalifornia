@@ -42,9 +42,7 @@
     </a>
     <nav class="site-nav" aria-label="Section navigation">
       <ul>
-        <li><a href="#sfmap">SF map</a></li>
-        <li><a href="#map">Bay Area map</a></li>
-        <li><a href="#problem">The problem</a></li>
+        <li><a href="#sfmap">The map</a></li>
         <li><a href="#proposal">The proposal</a></li>
         <li><a href="#transition">Transition</a></li>
         <li><a href="#calculator">Calculator</a></li>
@@ -59,12 +57,12 @@
 
   <section class="hero" aria-labelledby="hero-heading">
     <div class="section-inner">
-      <h1 id="hero-heading">Cut the property tax rate by a third. Assess everyone the same way.</h1>
+      <h1 id="hero-heading">Fix California's unfair property taxes. Cut the rate to 0.7%, and apply it equally.</h1>
       <p class="lede">
-        <span class="brand-name">One Rate California</span> is a revenue-neutral reform: replace Prop 13's
-        frozen, purchase-price assessments with consistent market-value assessments statewide, and cut the
-        general property tax rate from 1% to roughly two-thirds of 1% — so the reform doesn't raise a dollar
-        more revenue than today. It just spreads the same total bill more evenly.
+        <span class="brand-name">Why should your neighbor pay a tenth the property tax you do, just because they managed to buy a home in 1980? California taxes property based on its value when it was bought, not its value today. One Rate California</span> is a revenue-neutral reform proposal: replace Prop 13's
+        formula (property taxes go up 2% or inflation, whichever is lower) with consistent market-value assessments statewide, with a transitionary plan to prevent displacement, and cut the
+        general property tax rate from 1% to 0.7% — so the reform doesn't raise
+        more revenue than today.
       </p>
       <div class="cta-row">
         <a href="#calculator" class="btn btn-primary">See what it means for your bill</a>
@@ -89,52 +87,101 @@
 
   <section class="sfmap-section" id="sfmap" aria-labelledby="sfmap-heading">
     <div class="section-inner">
-      <h2 id="sfmap-heading">Our own data: San Francisco, 2026</h2>
+      <h2 id="sfmap-heading">The unfair status quo</h2>
       <p class="section-lead">
-        Every one of San Francisco's roughly 154,000 single-family homes and condos, plus ~35,000 multi-family
-        buildings, built from the city's own current public assessment records rather than a third party's —
-        so it's specific to San Francisco, but newer than the map above. Small circles are individual
-        homes/condos; larger white-ringed circles are whole apartment/rental buildings, colored by estimated
-        property tax subsidy either way.
+        We mapped the subsidy in SF, down to each single-family home, condo, and multi-family building. Prop 13 applies to commercial property too, but we focused on residential property.
       </p>
+
+      <div class="sfmap-tabs" role="tablist" aria-label="Map view">
+        <button type="button" class="sfmap-tab active" id="sfmap-tab-homes" role="tab" aria-selected="true" aria-controls="sfmap-panel-map" data-tab="homes">Individual homes</button>
+        <button type="button" class="sfmap-tab" id="sfmap-tab-neighborhoods" role="tab" aria-selected="false" aria-controls="sfmap-panel-map" data-tab="neighborhoods">Neighborhood averages</button>
+        <button type="button" class="sfmap-tab" id="sfmap-tab-tfp" role="tab" aria-selected="false" aria-controls="sfmap-panel-tfp" data-tab="tfp">Bay Area map (Tax Fairness Project)</button>
+      </div>
+
       <div class="sfmap-controls">
         <label for="sfmap-neighborhood" class="hint">Jump to:</label>
         <select id="sfmap-neighborhood">
           <option value="">Whole city</option>
         </select>
-        <div class="sfmap-search-wrap">
-          <label for="sfmap-search" class="visually-hidden">Search an address</label>
-          <input type="search" id="sfmap-search" placeholder="Search an address…" autocomplete="off">
-          <ul class="sfmap-search-results" id="sfmap-search-results" hidden></ul>
-        </div>
-        <label class="sfmap-toggle">
-          <input type="checkbox" id="sfmap-mf-toggle" checked>
-          Show multi-family buildings
-        </label>
-        <span class="sfmap-count" id="sfmap-count">Loading…</span>
+        <span class="sfmap-controls-extra" id="sfmap-extra-homes">
+          <div class="sfmap-search-wrap">
+            <label for="sfmap-search" class="visually-hidden">Search an address</label>
+            <input type="search" id="sfmap-search" placeholder="Search an address…" autocomplete="off">
+            <ul class="sfmap-search-results" id="sfmap-search-results" hidden></ul>
+          </div>
+          <label class="sfmap-toggle">
+            <input type="checkbox" id="sfmap-mf-toggle" checked>
+            Show multi-family buildings
+          </label>
+          <span class="sfmap-count" id="sfmap-count">Loading…</span>
+        </span>
+        <span class="sfmap-controls-extra" id="sfmap-extra-neighborhoods" hidden>
+          <span class="hint">Color by:</span>
+          <div class="sfmap-metric-toggle" role="group" aria-label="Neighborhood metric">
+            <button type="button" class="metric-btn active" data-metric="dollar">$ subsidy / home</button>
+            <button type="button" class="metric-btn" data-metric="pct">% subsidy</button>
+          </div>
+        </span>
       </div>
-      <div class="sfmap-wrap">
+
+      <div class="sfmap-wrap" id="sfmap-panel-map">
         <div id="sfmap-leaflet" role="img" aria-label="Map of San Francisco properties colored by estimated property tax subsidy"></div>
-        <div class="sfmap-legend" aria-hidden="true">
+        <div class="sfmap-legend" id="sfmap-legend-homes" aria-hidden="true">
           <span class="legend-title">Est. yearly subsidy</span>
           <div><span class="swatch swatch-tier-0"></span>pays more than market rate</div>
           <div><span class="swatch swatch-tier-1"></span>$0 – 5k</div>
           <div><span class="swatch swatch-tier-2"></span>$5k – 15k</div>
           <div><span class="swatch swatch-tier-3"></span>$15k – 30k</div>
           <div><span class="swatch swatch-tier-4"></span>$30k +</div>
-          <div class="legend-sep"><span class="swatch swatch-mf-indicator"></span>white ring = multi-family building</div>
+          <div class="legend-sep"><span class="swatch swatch-mf-indicator"></span>square = multi-family building</div>
+        </div>
+        <div class="sfmap-legend sfmap-legend-gradient" id="sfmap-legend-neighborhoods" aria-hidden="true" hidden>
+          <span class="legend-title" id="sfmap-legend-nb-title">Avg. $ subsidy / home</span>
+          <div class="gradient-bar"></div>
+          <div class="gradient-labels"><span id="sfmap-legend-nb-min">–</span><span id="sfmap-legend-nb-max">–</span></div>
         </div>
         <div class="sfmap-nbinfo" id="sfmap-nbinfo" hidden></div>
         <div class="sfmap-loading" id="sfmap-loading">Loading ~190,000 properties…</div>
       </div>
-      <p class="sfmap-hint">
+
+      <div class="sfmap-tfp-panel" id="sfmap-panel-tfp" hidden>
+        <p class="section-lead">
+          Every dot is a real Bay Area home, colored by its property tax subsidy — the gap between what it
+          actually pays and what it would pay if assessed at today's market value. Map and data:
+          <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">The Tax Fairness Project</a>.
+        </p>
+        <div class="map-embed-wrap">
+          <iframe src="https://www.taxfairnessproject.org/map" title="Property tax subsidy map by The Tax Fairness Project" loading="lazy"></iframe>
+        </div>
+        <p class="map-caption">
+          Map © <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">The Tax Fairness Project</a> —
+          <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">open full interactive map ↗</a>
+          (data reflects 2019–2020 county records and valuation estimates).
+        </p>
+        <div class="compare-callout">
+          <strong>How we differ from their reform proposal:</strong> The Tax Fairness Project's own
+          <a href="https://www.taxfairnessproject.org/reform" target="_blank" rel="noopener">reform page</a>
+          models two options — a revenue-neutral flat rate (~0.69%) and a revenue-positive "pro-education" rate
+          (1.15%) that would raise total collections about 35% for K-12 funding. One Rate California advocates
+          only the revenue-neutral path — a lower rate, not new revenue — because pairing a tax cut with a
+          request for new spending muddies both asks.
+        </div>
+      </div>
+
+      <p class="sfmap-hint" id="sfmap-hint-homes">
         Drag to pan, scroll or double-click/pinch to zoom, click any home for its numbers. Zoom in (or pick a
         neighborhood above) to see its boundary and average subsidy. Map data ©
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
         contributors.
       </p>
+      <p class="sfmap-hint" id="sfmap-hint-neighborhoods" hidden>
+        Each neighborhood is shaded and labeled by its average subsidy, weighted per home — a 200-unit
+        building counts as 200 homes, not one. Drag to pan, scroll to zoom. Map data ©
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+        contributors.
+      </p>
 
-      <details class="sfmap-methodology">
+      <details class="sfmap-methodology" id="sfmap-methodology-homes">
         <summary><h3>Methodology</h3></summary>
         <p class="faq-answer">
           Assessed values come directly from the San Francisco Assessor-Recorder's official public dataset
@@ -157,7 +204,7 @@
           tax rates used in the calculator above (1.00% today, ~0.65% proposed) are applied throughout.
         </p>
         <p class="faq-answer">
-          Multi-family buildings (larger, white-ringed circles) use a simpler, rougher method, since actual
+          Multi-family buildings (larger, square markers) use a simpler, rougher method, since actual
           building sales are much less frequent: rather than nearest individual comps, every confirmed sale in
           a neighborhood is
           averaged into one $/sqft figure, applied to every building in that neighborhood. Neighborhoods with
@@ -168,75 +215,35 @@
           assessed-vs-market tax gap.
         </p>
       </details>
-    </div>
-  </section>
 
-  <section class="map-section" id="map" aria-labelledby="map-heading">
-    <div class="section-inner">
-      <h2 id="map-heading">The unfairness, mapped</h2>
-      <p class="section-lead">
-        Every dot is a real Bay Area home, colored by its property tax subsidy — the gap between what it
-        actually pays and what it would pay if assessed at today's market value. Map and data:
-        <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">The Tax Fairness Project</a>.
-      </p>
-      <div class="map-embed-wrap">
-        <iframe src="https://www.taxfairnessproject.org/map" title="Property tax subsidy map by The Tax Fairness Project" loading="lazy"></iframe>
-      </div>
-      <p class="map-caption">
-        Map © <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">The Tax Fairness Project</a> —
-        <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">open full interactive map ↗</a>
-        (data reflects 2019–2020 county records and valuation estimates).
-      </p>
-      <div class="compare-callout">
-        <strong>How we differ from their reform proposal:</strong> The Tax Fairness Project's own
-        <a href="https://www.taxfairnessproject.org/reform" target="_blank" rel="noopener">reform page</a>
-        models two options — a revenue-neutral flat rate (~0.69%) and a revenue-positive "pro-education" rate
-        (1.15%) that would raise total collections about 35% for K-12 funding. One Rate California advocates
-        only the revenue-neutral path — a lower rate, not new revenue — because pairing a tax cut with a
-        request for new spending muddies both asks.
-      </div>
-    </div>
-  </section>
+      <details class="sfmap-methodology" id="sfmap-methodology-neighborhoods" hidden>
+        <summary><h3>Methodology</h3></summary>
+        <p class="faq-answer">
+          Each neighborhood's average is computed on a per-home basis, not a per-building basis: every
+          multi-family unit is counted as its own home (weighted by unit count), so a 200-unit building
+          contributes 200 data points, not one. The $ figure is each home's own estimated dollar subsidy
+          (building subsidy divided evenly across units, for multi-family). The % figure is
+          (estimated market value − assessed value) ÷ estimated market value — the assessment-gap discount as
+          a share of true value. That ratio is independent of the tax rate itself, since the same rate
+          multiplies both sides of the comparison.
+        </p>
+        <p class="faq-answer">
+          Multi-family buildings with no reported unit count (a small share of buildings) are excluded from
+          these per-home averages, since there's no way to know their true per-home split. See the "Individual
+          homes" tab's methodology for how assessed and market values themselves are estimated.
+        </p>
+      </details>
 
-  <section class="problem" id="problem" aria-labelledby="problem-heading">
-    <div class="section-inner">
-      <h2 id="problem-heading">Same street. Same value. Very different bills.</h2>
-      <div class="homes-grid">
-        <div class="home-card">
-          <h3>
-            <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"></path></svg>
-            Bought in 1995
-          </h3>
-          <dl>
-            <div><dt>Assessed value today</dt><dd>$210,000</dd></div>
-            <div><dt>Current market value</dt><dd>$950,000</dd></div>
-            <div class="bill-highlight"><dt>Current tax bill</dt><dd>$2,478/yr</dd></div>
-          </dl>
-        </div>
-        <div class="vs-divider" aria-hidden="true">vs.</div>
-        <div class="home-card">
-          <h3>
-            <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"></path></svg>
-            Bought in 2023
-          </h3>
-          <dl>
-            <div><dt>Assessed value today</dt><dd>$945,000</dd></div>
-            <div><dt>Current market value</dt><dd>$950,000</dd></div>
-            <div class="bill-highlight"><dt>Current tax bill</dt><dd>$11,151/yr</dd></div>
-          </dl>
-        </div>
-      </div>
-      <p class="problem-caption">
-        Two homes on the same block, worth almost exactly the same amount today — but one bill is more than
-        four times the other, purely because of when each was purchased. That gap keeps widening every year
-        prices rise.
-      </p>
-      <p class="problem-note">Illustrative example; not actual properties.</p>
-      <div class="reform-callout">
-        Under this reform, both homes would be assessed at their ~$950,000 market value and taxed at the
-        same lower rate — about $7,885/yr each. The longtime owner's bill would roughly triple; the recent
-        buyer's would fall by about 29%. That's not a hidden cost of the plan — it's the plan.
-      </div>
+      <details class="sfmap-methodology" id="sfmap-methodology-tfp" hidden>
+        <summary><h3>Methodology</h3></summary>
+        <p class="faq-answer">
+          This map is an embed of <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">The Tax Fairness Project's</a>
+          own Bay Area map, built from their own data and methodology (2019–2020 county records and valuation
+          estimates) — not ours. See their site for details on how they estimate market values and subsidies.
+          It covers the whole Bay Area, not just San Francisco, but on an older data vintage than our own
+          SF-specific map in the other two tabs.
+        </p>
+      </details>
     </div>
   </section>
 
@@ -309,13 +316,21 @@
     <div class="section-inner">
       <h2 id="calc-heading">Calculator: what would this mean for your bill?</h2>
       <p class="section-lead">
-        Enter numbers from your own property tax bill, or start with the pre-filled example. Every figure
-        below is adjustable — nothing here is a hidden assumption.
+        Enter numbers from your own property tax bill, look up any San Francisco address, or start with the
+        pre-filled example. Every figure below is adjustable — nothing here is a hidden assumption. Two homes
+        on the same block can have wildly different bills purely because of when they were bought — try
+        looking up two nearby addresses to see it for yourself.
       </p>
       <div class="calc-grid">
         <div class="calc-inputs">
           <fieldset>
             <legend>Your property</legend>
+            <label for="calcAddress">San Francisco address <span class="hint">(optional — autofills the fields below)</span></label>
+            <div class="calc-address-wrap">
+              <input type="search" id="calcAddress" placeholder="Search an address…" autocomplete="off">
+              <ul class="calc-address-results" id="calcAddressResults" hidden></ul>
+            </div>
+
             <label for="assessedValue">Current assessed value (from your tax bill)</label>
             <input type="number" id="assessedValue" value="400000" min="0" step="1000" inputmode="numeric">
 
@@ -344,12 +359,15 @@
               Held constant for simplicity; in reality it would likely fall some as the assessment base grows.
             </p>
 
-            <label for="proposedRate">Proposed general tax rate: <output id="proposedRateOut" for="proposedRate">0.65%</output></label>
-            <input type="range" id="proposedRate" min="0.59" max="0.70" step="0.01" value="0.65">
-            <p class="rate-range-note">
-              The revenue-neutral rate depends on how much reassessment grows the tax base statewide —
-              estimates range from 43% to 70%. This slider implies a base-growth assumption of about
-              <strong id="impliedGrowth">53.8%</strong>.
+            <label for="proposedRate">Proposed general tax rate</label>
+            <div class="rate-input-row">
+              <input type="range" id="proposedRate" min="0" max="2" step="0.01" value="0.70">
+              <input type="number" id="proposedRateNum" min="0" max="2" step="0.01" value="0.70">
+              <span class="rate-unit">%</span>
+            </div>
+            <p class="rate-range-note" id="impliedGrowthNote">
+              This implies a statewide assessment-base growth of about <strong id="impliedGrowth">53.8%</strong>
+              relative to today, for the reform to stay revenue-neutral.
             </p>
           </fieldset>
         </div>
@@ -377,8 +395,7 @@
 
   <section class="faq" id="faq" aria-labelledby="faq-heading">
     <div class="section-inner">
-      <h2 id="faq-heading">Honest FAQ</h2>
-      <p class="section-lead">Straight answers, including the ones that don't help the pitch.</p>
+      <h2 id="faq-heading">FAQ</h2>
 
       <details>
         <summary><h3>Will my taxes go up?</h3></summary>
@@ -388,7 +405,7 @@
           assessed value is already close to market value, your bill would likely fall, since the general
           rate itself drops by about a third. If you've owned your home a long time in an area where prices
           have risen a lot, your assessed value is probably far below market value, and your bill would
-          eventually rise to reflect that — but not all at once. See <a href="#transition">how the increase
+          gradually rise to reflect that. See <a href="#transition">how the increase
           phases in</a> below.
         </p>
       </details>
@@ -396,9 +413,7 @@
       <details>
         <summary><h3>What about seniors on fixed incomes?</h3></summary>
         <p class="faq-answer">
-          This is the single biggest legitimate concern with an idea like this, and it deserves a straight
-          answer, not a dodge. That's what the <a href="#transition">transition mechanism</a> above is for:
-          your annual bill can only rise 4% a year no matter how far below market your assessed value is, for
+          We want you to be able to stay in your homes! Under this plan, your annual bill can only rise 4% a year no matter how far below market your assessed value is, for
           as long as you keep the home. Nobody has to move, or find a lump sum, to cover the difference — the
           difference is deferred, not forgiven, and comes due at the next sale or transfer.
         </p>
@@ -407,12 +422,7 @@
       <details>
         <summary><h3>Is this a tax increase?</h3></summary>
         <p class="faq-answer">
-          Statewide, it's designed to be revenue-neutral: the rate is cut by about a third specifically to
-          offset the fact that everyone would be assessed at market value instead of a frozen purchase price.
-          It is not a hidden way to fund new spending, and this page does not promise new money for schools,
-          services, or infrastructure — that would be a different, revenue-positive proposal. But
-          "revenue-neutral in aggregate" does not mean "no individual bill changes." Some go up, some go down
-          — see "Will my taxes go up?" above.
+          No. This is a revenue-neutral adjustment to the way property tax is calculated, so that it's applied equally by design, and is fairer to the neediest homeowners.
         </p>
       </details>
 
@@ -428,24 +438,6 @@
         </p>
       </details>
 
-      <details>
-        <summary><h3>Who pays more under this?</h3></summary>
-        <p class="faq-answer">
-          Owners whose current assessed value is well below today's market value — typically people who have
-          owned the same property for a long time in places where prices climbed a lot in the meantime. Their
-          share of the tax base rises to match what their property is actually worth today, even as the rate
-          itself falls.
-        </p>
-      </details>
-
-      <details>
-        <summary><h3>Who pays less?</h3></summary>
-        <p class="faq-answer">
-          Owners whose assessed value is already close to market value — typically people who bought more
-          recently. They see the direct benefit of the rate cut without a matching jump in their taxable
-          value, so their bill falls by roughly the same one-third the rate falls.
-        </p>
-      </details>
     </div>
   </section>
 

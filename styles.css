@@ -36,12 +36,11 @@
     /* SF map subsidy tiers -- single source of truth. map.js reads these via
        getComputedStyle at load time instead of hardcoding a parallel color list,
        so the legend swatches below and the canvas rendering can never drift apart. */
-    --tier-0: #4a6c8c; /* pays more than market rate */
-    --tier-1: #ead9ad; /* $0 - 5k */
-    --tier-2: #dca482; /* $5k - 15k */
-    --tier-3: #ce6e56; /* $15k - 30k */
-    --tier-4: #c0392b; /* $30k + -- highest subsidy, clearly red */
-    --mf-indicator: #5b6169; /* legend-only: "this shape = multi-family", not a data tier */
+    --tier-0: #ffffff; /* pays more than market rate */
+    --tier-1: #efe9da; /* $0 - 5k -- parchment */
+    --tier-2: #a3bc9f; /* $5k - 15k */
+    --tier-3: #5b7d63; /* $15k - 30k */
+    --tier-4: #1b332e; /* $30k + -- highest subsidy, dark forest green */
   }
 
   html { scroll-behavior: smooth; }
@@ -184,47 +183,6 @@
   .hero .stat-num { font-family: var(--font-serif); font-size: 1.6rem; color: var(--primary-dark); font-weight: 700; }
   .hero .stat-label { font-size: 0.82rem; color: var(--ink-soft); }
 
-  /* ---------- Problem section ---------- */
-  .problem { background: var(--surface-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .homes-grid {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 1.2rem;
-    align-items: stretch;
-    margin-top: 1.6rem;
-  }
-  .home-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.4rem;
-  }
-  .home-card h3 { display: flex; align-items: center; gap: 0.5rem; }
-  .home-card .home-icon { width: 22px; height: 22px; color: var(--gold); flex: none; }
-  .home-card dl { margin-top: 0.9rem; }
-  .home-card dl div { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px dashed var(--border); font-size: 0.92rem; }
-  .home-card dl div:last-child { border-bottom: none; }
-  .home-card dt { color: var(--ink-soft); }
-  .home-card dd { font-weight: 600; text-align: right; }
-  .home-card .bill-highlight dd { font-size: 1.15rem; }
-  .vs-divider {
-    align-self: center;
-    font-family: var(--font-serif);
-    color: var(--ink-soft);
-    font-size: 0.9rem;
-    text-align: center;
-  }
-  .problem-caption {
-    margin-top: 1.3rem;
-    font-size: 0.98rem;
-    color: var(--ink-soft);
-  }
-  .problem-note {
-    margin-top: 0.4rem;
-    font-size: 0.8rem;
-    color: var(--ink-soft);
-    font-style: italic;
-  }
   .reform-callout {
     margin-top: 1.6rem;
     background: var(--surface);
@@ -237,8 +195,7 @@
 
   
 
-  /* ---------- Map section ---------- */
-  .map-section .section-inner { padding-top: 3.2rem; }
+  /* ---------- Tax Fairness Project embed (tab 3 of the SF map) ---------- */
   .map-embed-wrap {
     /* Their /map page includes its own header + search bar above the map canvas.
        We don't control that markup (it's a cross-origin iframe), so we crop it by
@@ -288,6 +245,29 @@
 
   /* ---------- SF map (ours) ---------- */
   .sfmap-section { background: var(--surface); }
+  .sfmap-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.4rem;
+  }
+  .sfmap-tab {
+    appearance: none;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .sfmap-tab:hover { background: var(--bg); }
+  .sfmap-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-contrast);
+  }
   .sfmap-controls {
     display: flex;
     align-items: center;
@@ -295,6 +275,42 @@
     flex-wrap: wrap;
     margin-top: 1.2rem;
   }
+  /* display:contents so the two swappable control groups lay out as if their
+     children were direct flex items of .sfmap-controls, without an extra box. */
+  .sfmap-controls-extra { display: contents; }
+  .sfmap-controls-extra[hidden] { display: none; }
+  .sfmap-metric-toggle { display: inline-flex; gap: 0.4rem; }
+  .metric-btn {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .metric-btn.active {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: var(--primary-contrast);
+  }
+  .sfmap-legend-gradient .gradient-bar {
+    margin-top: 0.4rem;
+    width: 10rem;
+    height: 0.7rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: linear-gradient(to right, #efe9da, #5b7d63, #1b332e);
+  }
+  .sfmap-legend-gradient .gradient-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 10rem;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+  }
+  .sfmap-tfp-panel .section-lead { margin-top: 1.2rem; }
   .sfmap-controls select {
     padding: 0.5rem 0.6rem;
     border: 1px solid var(--border);
@@ -410,6 +426,7 @@
     display: inline-block;
     width: 0.7rem; height: 0.7rem;
     border-radius: 2px;
+    border: 1px solid var(--border);
     margin-right: 0.4rem;
     vertical-align: middle;
   }
@@ -420,10 +437,7 @@
   .swatch-tier-3 { background: var(--tier-3); border-radius: 50%; }
   .swatch-tier-4 { background: var(--tier-4); border-radius: 50%; }
   .swatch-mf-indicator {
-    background: var(--mf-indicator);
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px var(--border);
-    border-radius: 50%;
+    background: var(--ink-soft);
   }
   .sfmap-toggle {
     display: inline-flex;
@@ -449,6 +463,22 @@
     margin-top: 0.3rem;
     text-align: left;
   }
+  /* Neighborhood-averages tab: permanent text labels on top of each colored
+     polygon -- strip Leaflet's default tooltip chrome (arrow, box shadow) and
+     replace with a small legible chip that reads over any fill color. */
+  .leaflet-tooltip.nb-label {
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 4px;
+    box-shadow: none;
+    padding: 0.1rem 0.35rem;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.72rem;
+    color: var(--ink);
+  }
+  .leaflet-tooltip.nb-label::before { display: none; }
+
   .sfmap-hint { margin-top: 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
   .small-note { margin-top: 0.9rem; font-size: 0.78rem; color: var(--ink-soft); }
   .sfmap-methodology { margin-top: 1.2rem; }
@@ -533,6 +563,45 @@
   }
   .calc-inputs input[disabled] { background: var(--flat-bg); color: var(--ink-soft); }
   .calc-inputs input[type="range"] { width: 100%; accent-color: var(--primary); }
+  .calc-address-wrap { position: relative; }
+  .calc-address-results {
+    position: absolute;
+    z-index: 20;
+    top: 100%;
+    left: 0;
+    margin-top: 0.3rem;
+    width: 100%;
+    max-height: 14rem;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    list-style: none;
+  }
+  .calc-address-results[hidden] { display: none; }
+  .calc-address-results li {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .calc-address-results li:last-child { border-bottom: none; }
+  .calc-address-results li:hover,
+  .calc-address-results li.active { background: var(--surface-alt); }
+  .calc-address-results li.search-empty { cursor: default; color: var(--ink-soft); }
+  .rate-input-row { display: flex; align-items: center; gap: 0.6rem; }
+  .rate-input-row input[type="range"] { flex: 1; }
+  .rate-input-row input[type="number"] {
+    width: 4.5rem;
+    flex: none;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    font-size: 0.9rem;
+  }
+  .rate-input-row .rate-unit { color: var(--ink-soft); font-size: 0.9rem; }
   .hint { font-weight: 400; font-style: italic; color: var(--ink-soft); }
   .rate-range-note { font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.6rem; }
   .bond-note { font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.5rem; }
@@ -666,9 +735,6 @@
   }
 
   @media (max-width: 700px) {
-    .homes-grid { grid-template-columns: 1fr; }
-    .vs-divider { padding: 0.2rem 0; }
-  
     .sfmap-wrap { height: 440px; }
     .sfmap-legend { font-size: 0.68rem; padding: 0.4rem 0.55rem; line-height: 1.35; max-width: 45vw; }
     .sfmap-legend .swatch { width: 0.6rem; height: 0.6rem; margin-right: 0.3rem; }
@@ -676,6 +742,8 @@
     .sfmap-nbinfo { white-space: normal; max-width: 80%; font-size: 0.78rem; }
     .sfmap-search-wrap input[type="search"] { width: 100%; }
     .leaflet-control-zoom { transform: scale(0.9); transform-origin: top right; }
-  
+    .sfmap-tab { font-size: 0.82rem; padding: 0.5rem 0.85rem; }
+    .calc-address-wrap { width: 100%; }
+
     .map-embed-wrap { height: 480px; }
   }

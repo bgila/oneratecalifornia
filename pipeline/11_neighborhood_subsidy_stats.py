@@ -21,8 +21,14 @@ exact same method the live map itself uses for its neighborhood badge -- there i
 no neighborhood column in the slim map-data CSVs (only in the raw pipeline
 intermediates, which aren't committed/kept around).
 
+Also merges the two per-home stats back into data/sf-neighborhoods.json itself
+(overwriting the old SFR-only, building-level "avg_subsidy" with the properly
+per-home-weighted figure, and adding "avg_pct_subsidy" alongside it) so the live
+map's neighborhood-averages view reads the same numbers as this analysis.
+
 Reads:  data/sf-map-data.csv, data/sf-map-data-mf.csv, data/sf-neighborhoods.json
-Writes: analysis/neighborhood-subsidy-stats.csv, analysis/neighborhood_pct_subsidy_map.png,
+Writes: data/sf-neighborhoods.json (avg_subsidy, avg_pct_subsidy fields updated),
+        analysis/neighborhood-subsidy-stats.csv, analysis/neighborhood_pct_subsidy_map.png,
         analysis/neighborhood_dollar_subsidy_map.png
 """
 import csv
@@ -148,6 +154,13 @@ with open(csv_path, "w", newline="") as f:
         s = stats[name]
         writer.writerow([name, s["n_homes"], round(s["avg_pct_subsidy"], 2), round(s["avg_dollar_subsidy_per_home"])])
 print(f"wrote {csv_path}")
+
+# ---------- merge into data/sf-neighborhoods.json for the live map ----------
+nb_json_path = REPO / "data" / "sf-neighborhoods.json"
+nb_json["avg_subsidy"] = {name: round(s["avg_dollar_subsidy_per_home"]) for name, s in stats.items()}
+nb_json["avg_pct_subsidy"] = {name: round(s["avg_pct_subsidy"], 1) for name, s in stats.items()}
+nb_json_path.write_text(json.dumps(nb_json))
+print(f"updated {nb_json_path} (avg_subsidy, avg_pct_subsidy)")
 
 
 # ---------- choropleth maps ----------
