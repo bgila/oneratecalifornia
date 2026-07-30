@@ -31,8 +31,17 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+
+# Parchment (lowest subsidy) to dark forest green (highest subsidy) -- a single-hue
+# lightness ramp rather than a red-green diverging scale, so it stays legible for
+# red-green color vision deficiency. Matches the site's own palette (--surface-alt
+# parchment, --primary-dark forest green).
+FOREST_PARCHMENT = LinearSegmentedColormap.from_list(
+    "forest_parchment", ["#efe9da", "#5b7d63", "#1b332e"]
+)
 
 REPO = Path(__file__).resolve().parent.parent
 OUT_DIR = REPO / "analysis"
@@ -181,7 +190,7 @@ draw_choropleth(
     "Average per-home subsidy, as % of market value's fair-share tax",
     "avg % subsidy",
     OUT_DIR / "neighborhood_pct_subsidy_map.png",
-    "cividis",
+    FOREST_PARCHMENT,
     lambda v, _: f"{v:.0f}%",
 )
 draw_choropleth(
@@ -189,6 +198,6 @@ draw_choropleth(
     "Average per-home subsidy, in dollars/year",
     "avg $ subsidy / home / yr",
     OUT_DIR / "neighborhood_dollar_subsidy_map.png",
-    "cividis",
+    FOREST_PARCHMENT,
     lambda v, _: f"${v:,.0f}",
 )
