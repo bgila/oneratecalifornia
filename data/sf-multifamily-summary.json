@@ -11,23 +11,23 @@
     "generated": "2026-07-30"
   },
   "counts": {
-    "total_parcels": 35196,
+    "total_parcels": 35216,
     "jump_confirmed_sales": 2184,
     "comps_after_filter": 2096,
-    "estimated_rows_written": 35190,
+    "estimated_rows_written": 35210,
     "skipped_no_data": 6
   },
   "stats": {
     "subsidy_vs_market_today": {
-      "median": 14875,
-      "mean": 22309,
-      "p90": 47653,
-      "min": -1818183,
-      "max": 2841910
+      "median": 14879,
+      "mean": 22935,
+      "p90": 47764,
+      "min": -2415035,
+      "max": 6810959
     },
     "under_reform": {
-      "would_pay_more": 24525,
-      "would_pay_less": 10665
+      "would_pay_more": 24534,
+      "would_pay_less": 10676
     }
   }
 }
