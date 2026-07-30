@@ -82,26 +82,37 @@
     let halfW = (canvas.width / 2) / s, halfH = (canvas.height / 2) / s;
     let minX = view.cx - halfW, maxX = view.cx + halfW;
     let minY = view.cy - halfH, maxY = view.cy + halfH;
-    // NOT .toFixed(2): fontPx/s is a tiny fraction (world-space units get rescaled up by
-    // the canvas transform), and rounding to 2 decimals collapses it to "0.00px" -- an
-    // invisible zero-size font. Plain string conversion keeps full precision.
-    ctx.font = (fontPx / s) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+
+    // Text does NOT reliably scale the way vector fills/strokes do when drawn while the
+    // extreme world-scale transform is active: a font-size that's a tiny fraction in
+    // world-space (meant to be rescaled up by the transform, same trick used for
+    // lineWidth elsewhere) rasterizes as literally invisible sub-pixel glyphs, even
+    // though canvas accepts the string and the math is otherwise correct. So for the
+    // glyph draw specifically, we switch to plain device-pixel space and do the
+    // world->screen math ourselves instead of leaning on the ambient transform.
+    let m = ctx.getTransform();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = (fontPx * dpr) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
     for (let i = 0; i < labels.length; i++) {
       let l = labels[i];
       if (l.x < minX || l.x > maxX || l.y < minY || l.y > maxY) continue;
+      let devX = m.a * l.x + m.c * l.y + m.e;
+      let devY = m.b * l.x + m.d * l.y + m.f;
       ctx.save();
-      ctx.translate(l.x, l.y);
+      ctx.translate(devX, devY);
       ctx.rotate(l.a);
-      ctx.lineWidth = haloWidthPx / s;
+      ctx.lineWidth = haloWidthPx * dpr;
       ctx.strokeStyle = 'rgba(246,244,238,0.88)';
       ctx.strokeText(l.n, 0, 0);
       ctx.fillStyle = '#5c5346';
       ctx.fillText(l.n, 0, 0);
       ctx.restore();
     }
+    ctx.restore();
   }
 
   function nearestNeighborhood(wx, wy) {
