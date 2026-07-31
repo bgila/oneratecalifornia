@@ -28,40 +28,33 @@
 
   // Uses home.history (see pipeline/14) directly -- the real per-year assessed
   // value from DataSF's actual digitized rolls, 2007-2025, so it shows
-  // whatever really happened (a reset that current_sales_date's single
-  // "most recent sale" field doesn't capture, a Prop 8 decline-in-value
-  // adjustment, etc.), not a reconstructed theoretical curve. No pre-2007
-  // estimate: that data doesn't exist, so the chart just doesn't claim it.
-  // The reset year is the home's own recorded sale year if it has one and
-  // it falls in this window (so a home that reset in, say, 2016 only shows
-  // "actual tax paid" from 2016 on), or 2007 if it doesn't. All series are
-  // null before the reset year: this owner didn't own the home yet, so
-  // neither their actual tax nor a hypothetical market-rate tax means
-  // anything before then.
+  // whatever really happened to this parcel -- including a reset that
+  // current_sales_date's single "most recent sale" field doesn't capture,
+  // or a Prop 8 decline-in-value adjustment -- not a reconstructed
+  // theoretical curve. This is the parcel's real history regardless of who
+  // owned it when: home.sale_year (the most recent recorded sale) isn't
+  // used here at all, since it can't tell us about any earlier sale within
+  // this window anyway, and the real assessed-value data doesn't need it to
+  // be correct. No pre-2007 estimate: that data doesn't exist, so the chart
+  // just doesn't claim it.
   function computeSeries(home) {
     var years = [];
     for (var y = START_YEAR; y <= END_YEAR; y++) years.push(y);
-    var resetYear = Math.max(START_YEAR, home.sale_year || START_YEAR);
     var history = home.history || {};
 
-    // base/hpiReset anchor the "market value, today's rate" line (still a
+    // base/hpiAnchor anchor the "market value, today's rate" line (still a
     // FRED-index estimate -- there's no bulk sale-price data to draw it from
-    // directly). Anchored on the real assessed value at resetYear when
-    // available, else the current snapshot.
-    var anchorVal = history[String(resetYear)];
-    var anchorYear = resetYear;
+    // directly). Anchored on the earliest real assessed value on file for
+    // this parcel, or the current snapshot if history is empty.
+    var anchorVal = history[String(START_YEAR)];
+    var anchorYear = START_YEAR;
     if (anchorVal == null) { anchorYear = END_YEAR; anchorVal = home.assessed; }
-    var base = anchorVal / Math.pow(1.02, anchorYear - resetYear);
-    var hpiReset = hpi[String(resetYear)];
+    var base = anchorVal / Math.pow(1.02, anchorYear - START_YEAR);
+    var hpiAnchor = hpi[String(anchorYear)];
 
     var assessedVal = [], marketVal = [], actual = [], marketNow = [], proposed = [];
     var lastReal = null;
     years.forEach(function (y) {
-      if (y < resetYear) {
-        assessedVal.push(null); marketVal.push(null);
-        actual.push(null); marketNow.push(null); proposed.push(null);
-        return;
-      }
       var assessedY;
       if (history[String(y)] != null) {
         assessedY = history[String(y)];
@@ -69,10 +62,10 @@
       } else if (lastReal != null) {
         assessedY = lastReal; // small gap in real data -- carry the last known value forward
       } else {
-        assessedY = base * Math.pow(1.02, y - resetYear); // gap with nothing yet to carry forward
+        assessedY = base * Math.pow(1.02, y - START_YEAR); // gap with nothing yet to carry forward
       }
-      var hpiY = hpi[String(y)] || hpiReset;
-      var marketY = base * (hpiY / hpiReset);
+      var hpiY = hpi[String(y)] || hpiAnchor;
+      var marketY = anchorVal * (hpiY / hpiAnchor);
       assessedVal.push(assessedY);
       marketVal.push(marketY);
       actual.push(assessedY * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100);
@@ -80,7 +73,7 @@
       proposed.push(marketY * (GENERAL_RATE_PROPOSED + BOND_RATE_SF) / 100);
     });
     return {
-      years: years, resetYear: resetYear,
+      years: years,
       assessedVal: assessedVal, marketVal: marketVal,
       actual: actual, marketNow: marketNow, proposed: proposed
     };
@@ -164,16 +157,12 @@
     var market = currentSeries.marketVal[i];
     var taxPaid = currentSeries.actual[i];
     var taxProposed = currentSeries.proposed[i];
-    if (assessed == null) {
-      tooltipEl.innerHTML = '<strong>' + year + '</strong><div>Not yet owned by this buyer</div>';
-    } else {
-      tooltipEl.innerHTML =
-        '<strong>' + year + '</strong>' +
-        '<div class="tt-actual">Assessed value: ' + fmtUSD0.format(assessed) + '</div>' +
-        '<div class="tt-market">Est. market value: ' + fmtUSD0.format(market) + '</div>' +
-        '<div class="tt-actual">Prop tax paid: ' + fmtUSD0.format(taxPaid) + '</div>' +
-        '<div class="tt-proposed">Prop tax under this reform: ' + fmtUSD0.format(taxProposed) + '</div>';
-    }
+    tooltipEl.innerHTML =
+      '<strong>' + year + '</strong>' +
+      '<div class="tt-actual">Assessed value: ' + fmtUSD0.format(assessed) + '</div>' +
+      '<div class="tt-market">Est. market value: ' + fmtUSD0.format(market) + '</div>' +
+      '<div class="tt-actual">Prop tax paid: ' + fmtUSD0.format(taxPaid) + '</div>' +
+      '<div class="tt-proposed">Prop tax under this reform: ' + fmtUSD0.format(taxProposed) + '</div>';
     tooltipEl.hidden = false;
 
     var left = (xPix / CHART_W) * rect.width;
