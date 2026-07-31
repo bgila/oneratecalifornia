@@ -112,6 +112,8 @@
   let addrData = null; // [{addr, assessed, market}], lazily fetched on first use
   let addrLoading = false;
   let addrMatches = [];
+  let addrFuse = null;
+  const FUSE_OPTS = { includeScore: false, threshold: 0.35, ignoreLocation: true, distance: 100, keys: ['addr'] };
 
   function parseAddressCSV(text) {
     const lines = text.split('\n');
@@ -135,6 +137,7 @@
       .then(function (r) { if (!r.ok) throw new Error('fetch failed'); return r.text(); })
       .then(function (text) {
         addrData = parseAddressCSV(text);
+        if (typeof Fuse !== 'undefined') { addrFuse = new Fuse(addrData, FUSE_OPTS); }
         addrLoading = false;
         cb();
       })
@@ -146,8 +149,7 @@
   }
 
   function runAddressSearch(q) {
-    const ql = q.toLowerCase();
-    addrMatches = addrData.filter(function (r) { return r.addr.toLowerCase().indexOf(ql) !== -1; }).slice(0, 8);
+    addrMatches = addrFuse ? addrFuse.search(q, { limit: 8 }).map(function (h) { return h.item; }) : [];
     if (!addrMatches.length) {
       addressResultsEl.innerHTML = '<li class="search-empty">No matches</li>';
       addressResultsEl.hidden = false;

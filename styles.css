@@ -95,7 +95,7 @@
   .site-header {
     position: sticky;
     top: 0;
-    z-index: 500;
+    z-index: 1100;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
@@ -377,7 +377,7 @@
   }
   .sfmap-search-results {
     position: absolute;
-    z-index: 20;
+    z-index: 1001;
     top: 100%;
     left: 0;
     margin-top: 0.3rem;
@@ -606,7 +606,7 @@
   .calc-address-wrap { position: relative; }
   .calc-address-results {
     position: absolute;
-    z-index: 20;
+    z-index: 1001;
     top: 100%;
     left: 0;
     margin-top: 0.3rem;

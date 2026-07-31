@@ -41,6 +41,13 @@
 
   var fmtUSD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
+  // Fuzzy address search (Fuse.js, approximate/edit-distance matching) -- indices
+  // are built once per dataset right after it loads, not per keystroke. ignoreLocation
+  // lets a match land anywhere in the string rather than assuming it starts near the
+  // beginning; threshold is how forgiving of typos/missing chars a match can be.
+  var FUSE_OPTS = { includeScore: false, threshold: 0.35, ignoreLocation: true, distance: 100 };
+  var sfrFuse = null, mfFuse = null;
+
   // Parchment (lowest) to dark forest green (highest) -- same single-hue lightness
   // ramp as the offline neighborhood-subsidy analysis maps (pipeline/11), so the
   // live neighborhood-averages tab matches them exactly. Deliberately not a
@@ -501,19 +508,18 @@
   function runSearch(q) {
     searchMatches = [];
     if (q.length < 3) { searchResults.hidden = true; searchResults.innerHTML = ''; return; }
-    var ql = q.toLowerCase();
-    if (sfrLoaded) {
-      for (var i = 0; i < sfrAddr.length && searchMatches.length < 8; i++) {
-        if (sfrAddr[i] && sfrAddr[i].toLowerCase().indexOf(ql) !== -1) {
-          searchMatches.push({ label: sfrAddr[i], lat: sfrLat[i], lon: sfrLon[i], marker: null, popupFn: makeSFRPopupFn(i) });
-        }
+    if (sfrFuse) {
+      var sfrHits = sfrFuse.search(q, { limit: 8 });
+      for (var i = 0; i < sfrHits.length && searchMatches.length < 8; i++) {
+        var si = sfrHits[i].refIndex;
+        searchMatches.push({ label: sfrAddr[si], lat: sfrLat[si], lon: sfrLon[si], marker: null, popupFn: makeSFRPopupFn(si) });
       }
     }
-    if (mfLoaded) {
-      for (var j = 0; j < mfAddr.length && searchMatches.length < 8; j++) {
-        if (mfAddr[j] && mfAddr[j].toLowerCase().indexOf(ql) !== -1) {
-          searchMatches.push({ label: mfAddr[j] + ' (multi-family)', lat: mfLat[j], lon: mfLon[j], marker: null, popupFn: makeMFPopupFn(j) });
-        }
+    if (mfFuse) {
+      var mfHits = mfFuse.search(q, { limit: 8 });
+      for (var j = 0; j < mfHits.length && searchMatches.length < 8; j++) {
+        var mi = mfHits[j].refIndex;
+        searchMatches.push({ label: mfAddr[mi] + ' (multi-family)', lat: mfLat[mi], lon: mfLon[mi], marker: null, popupFn: makeMFPopupFn(mi) });
       }
     }
     if (!searchMatches.length) {
@@ -564,6 +570,7 @@
         sfrCount = parseSFRCSV(text);
         buildSFRMarkers(sfrCount);
         sfrLoaded = true;
+        if (typeof Fuse !== 'undefined') { sfrFuse = new Fuse(sfrAddr, FUSE_OPTS); }
         loadingEl.style.display = 'none';
         updateCountText();
       })
@@ -579,6 +586,7 @@
         mfCount = parseMFCSV(text);
         buildMFMarkers(mfCount);
         mfLoaded = true;
+        if (typeof Fuse !== 'undefined') { mfFuse = new Fuse(mfAddr, FUSE_OPTS); }
         updateCountText();
       })
       .catch(function () { /* multi-family layer is additive; map still works without it */ });
