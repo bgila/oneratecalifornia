@@ -1,32 +1,24 @@
 """
-Build a small pool of San Francisco single-family homes that have very
-likely gone at least ~50 years without their assessed value resetting to
-market rate, for the hero section's "50 years of Prop 13" chart.
+Build a small pool of San Francisco single-family homes for the hero
+section's "Prop 13 over time" chart -- a plain random sample, no cherry-
+picking. The only real constraint is that the home has to have existed for
+the full chart window (1975-2025, see hero-chart.js), so it's filtered to
+built-before-1976; beyond that every qualifying home has an equal chance
+of being picked.
 
-DataSF's sale-date field only goes back to ~1983 (it's null for anything
-not resold since before records were digitized), so "no recorded sale at
-all" was our first proxy for long tenure -- but that alone was misleading:
-it silently excluded every home whose most recent recorded event was a
-non-arms-length transfer (inheritance, parent-child exclusion, trust/family
-transfers) that keeps the OLD assessed value on the books despite having a
-sale date on file. Those homes belong in the pool just as much as ones
-with no sale record at all, and a real random sample of long-frozen homes
-should include some of them -- see 03_process_sfr.py's comp-detection logic
-for the same non-arms-length-transfer concept applied elsewhere.
-
-So the actual qualifying signal here is the assessed value itself: built
-before the cutoff year, AND assessed $/sqft well below typical SF market
-value (empirically, homes with no sale on file cluster under ~$150-280/sqft
-vs. ~$730/sqft median for homes with a real market-rate sale on file) --
-that directly captures "this assessment looks stale" regardless of whether
-a family-transfer sale date happens to be on file. Homes that DO have a
-sale date are additionally required to have sold long enough ago (<= 2000)
-that a low psf isn't just a very recent oddball transaction.
+Each home also carries its real recorded sale year, if DataSF has one on
+file (that field only goes back to ~1983 -- null means either no sale
+since before digitized records, or a non-arms-length transfer like
+inheritance that doesn't always get a date recorded the same way). The
+client-side reconstruction (hero-chart.js) uses that sale year, when
+present, as the home's own reset point, so a home that genuinely reset
+recently just shows a shorter "actual tax paid" segment instead of
+pretending every home has been frozen the full 50 years.
 
 For each home we only keep the handful of raw facts needed to reconstruct
-its tax trajectory client-side (see hero-chart.js): current assessed
-value, sqft, address, lat/lon, year built. The reconstruction itself
-(Prop 13's 2%/yr cap run backward from today, scaled against the FRED
+its tax trajectory client-side: current assessed value, sqft, address,
+lat/lon, year built, sale year. The reconstruction itself (Prop 13's 2%/yr
+cap run backward from the home's own reset point, scaled against the FRED
 house price index) happens in the browser -- see 13_fetch_hpi.py for the
 other half of that data.
 
@@ -53,8 +45,6 @@ FIELDS = (
 POOL_SIZE = 50
 MIN_SQFT = 400
 MAX_SQFT = 6000
-PSF_CUTOFF = 350       # assessed $/sqft below this looks like a stale, long-frozen assessment
-SALE_YEAR_CUTOFF = 2000  # a recorded sale is only allowed if it's this old or older
 SEED = 42
 
 
@@ -113,7 +103,6 @@ def main():
     print(f"candidates: {len(raw)}")
 
     homes = []
-    skipped_recent_sale = 0
     for r in raw:
         geom = r.get("the_geom")
         if not geom or geom.get("type") != "Point":
@@ -128,13 +117,8 @@ def main():
         assessed = land + impr + fix
         if assessed <= 0:
             continue
-        if assessed / sqft >= PSF_CUTOFF:
-            continue
         sale_date = r.get("current_sales_date")
         sale_year = int(sale_date[:4]) if sale_date else None
-        if sale_year is not None and sale_year > SALE_YEAR_CUTOFF:
-            skipped_recent_sale += 1
-            continue
         addr = clean_addr(r.get("property_location") or "")
         if not addr:
             continue
@@ -149,7 +133,7 @@ def main():
             "sale_year": sale_year,
         })
 
-    print(f"usable homes: {len(homes)} (skipped {skipped_recent_sale} low-psf but recently sold)")
+    print(f"usable homes: {len(homes)}")
     with_sale = sum(1 for h in homes if h["sale_year"])
     print(f"  {with_sale} have a recorded sale on file, {len(homes) - with_sale} don't")
 
