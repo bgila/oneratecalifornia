@@ -327,8 +327,8 @@
       </p>
       <div class="calc-grid">
         <div class="calc-inputs">
-          <fieldset>
-            <legend>Your property</legend>
+          <div class="calc-fieldset">
+            <h3>Your property</h3>
             <label for="calcAddress">San Francisco address <span class="hint">(optional — autofills the fields below)</span></label>
             <div class="calc-address-wrap">
               <input type="search" id="calcAddress" placeholder="Search an address…" autocomplete="off">
@@ -350,10 +350,10 @@
               <option value="0.12" data-label="San Diego">San Diego (~0.12%)</option>
               <option value="0.15" data-label="Other / statewide average">Other / statewide average (~0.15%)</option>
             </select>
-          </fieldset>
+          </div>
 
-          <fieldset>
-            <legend>Assumptions (adjustable)</legend>
+          <div class="calc-fieldset">
+            <h3>Assumptions (adjustable)</h3>
             <label for="currentGeneralRate">Current general tax rate <span class="hint">(fixed by Prop 13, not adjustable)</span></label>
             <input type="text" id="currentGeneralRate" value="1.00%" disabled>
 
@@ -373,7 +373,7 @@
               This implies a statewide assessment-base growth of about <strong id="impliedGrowth">42.9%</strong>
               relative to today, for the reform to stay revenue-neutral.
             </p>
-          </fieldset>
+          </div>
         </div>
 
         <div class="calc-output" aria-live="polite">
@@ -481,8 +481,6 @@
       <div class="involved-actions">
         <div class="fieldset-like">
           <h3>Get updates</h3>
-          <label for="involvedName">Name <span class="hint">(optional)</span></label>
-          <input type="text" id="involvedName" placeholder="Your name" autocomplete="off">
           <label for="involvedSubstack">Email address</label>
           <div class="substack-embed-wrap">
             <iframe id="involvedSubstack" src="https://barak.substack.com/embed" title="Subscribe to Barak's Substack" loading="lazy"></iframe>
@@ -491,7 +489,7 @@
         <div class="fieldset-like involved-contact">
           <h3>Questions, or want to help?</h3>
           <p>Reach out directly — we read every message.</p>
-          <a class="btn btn-secondary" id="contactUsBtn" href="mailto:barak.gila@gmail.com">Contact us</a>
+          <a class="btn btn-secondary" href="mailto:barak.gila@gmail.com?subject=One%20Rate%20California">Contact us</a>
         </div>
       </div>
     </div>

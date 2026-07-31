@@ -188,17 +188,4 @@
     if (!li) return;
     selectAddressMatch(addrMatches[parseInt(li.getAttribute('data-k'), 10)]);
   });
-
-  // ---------- Get involved: optional name feeds the mailto contact link ----------
-  const involvedNameEl = document.getElementById('involvedName');
-  const contactUsBtn = document.getElementById('contactUsBtn');
-
-  function updateContactHref() {
-    const name = involvedNameEl.value.trim();
-    const body = name ? ('Hi, my name is ' + name + '.\n\n') : '';
-    contactUsBtn.href = 'mailto:barak.gila@gmail.com?subject=' + encodeURIComponent('One Rate California') +
-      '&body=' + encodeURIComponent(body);
-  }
-  involvedNameEl.addEventListener('input', updateContactHref);
-  updateContactHref();
 })();
