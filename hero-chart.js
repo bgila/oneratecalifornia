@@ -15,7 +15,7 @@
   var GENERAL_RATE_CURRENT = 1.00;
   var BOND_RATE_SF = 0.18;
   var GENERAL_RATE_PROPOSED = 0.70;
-  var Y_DEFAULT_MAX = 50000; // soft cap -- expands per home if its own values run higher
+  var Y_DEFAULT_MAX = 10000; // soft cap -- expands per home if its own values run higher
 
   var homes = null, hpi = null, usedIndices = [];
   var currentSeries = null, currentChartEl = null;

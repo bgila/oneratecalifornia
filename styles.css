@@ -183,18 +183,19 @@
     appearance: none;
     background: var(--surface-alt);
     border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem 0.35rem 0.6rem;
     flex: none;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.35rem;
     color: var(--primary-dark);
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
   }
   .hero-chart-refresh:hover { background: var(--surface); border-color: var(--primary); }
-  .hero-chart-refresh .refresh-icon { width: 16px; height: 16px; }
+  .hero-chart-refresh .refresh-icon { width: 16px; height: 16px; flex: none; }
   .hero-chart-svg-outer { position: relative; margin-top: 0.6rem; cursor: crosshair; }
   .hero-chart-svg-wrap svg { display: block; width: 100%; height: auto; }
   .hero-chart-hoverline { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 2 2; }
@@ -237,7 +238,14 @@
   .hero-chart-swatch-actual { background: #b3261e; }
   .hero-chart-swatch-market { background: #2f6a9e; }
   .hero-chart-swatch-proposed { background: var(--primary); }
-  .hero-chart-caption { margin-top: 0.6rem; font-size: 0.74rem; color: var(--ink-soft); }
+  .hero-chart-title {
+    margin-top: 0.9rem;
+    font-family: "League Spartan", var(--font-sans);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+  .hero-chart-caption { margin-top: 0.3rem; font-size: 0.74rem; color: var(--ink-soft); }
   .hero p.lede {
     font-size: 1.1rem;
     color: var(--ink-soft);
