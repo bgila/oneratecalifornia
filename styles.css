@@ -154,6 +154,70 @@
     background: var(--surface);
   }
   .hero .section-inner { padding-top: 3.6rem; padding-bottom: 3.6rem; }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.2rem;
+    align-items: start;
+  }
+  .hero-chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.2rem 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .hero-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  .hero-chart-addr {
+    font-family: "League Spartan", var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  .hero-chart-refresh {
+    appearance: none;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-dark);
+    cursor: pointer;
+  }
+  .hero-chart-refresh:hover { background: var(--surface); border-color: var(--primary); }
+  .hero-chart-refresh .refresh-icon { width: 16px; height: 16px; }
+  .hero-chart-svg-wrap { margin-top: 0.6rem; }
+  .hero-chart-svg-wrap svg { display: block; width: 100%; height: auto; }
+  .hero-chart-axis, .hero-chart-gridline { stroke: var(--border); stroke-width: 1; }
+  .hero-chart-gridline { stroke-dasharray: 2 3; }
+  .hero-chart-axislabel { font-size: 8px; fill: var(--ink-soft); font-family: var(--font-sans); }
+  .hero-chart-line { fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-chart-actual { stroke: var(--up); }
+  .hero-chart-market { stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .hero-chart-proposed { stroke: var(--primary); }
+  .hero-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-top: 0.5rem;
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+  }
+  .hero-chart-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .hero-chart-swatch { width: 0.8rem; height: 0.15rem; border-radius: 2px; display: inline-block; }
+  .hero-chart-swatch-actual { background: var(--up); }
+  .hero-chart-swatch-market { background: var(--ink-soft); }
+  .hero-chart-swatch-proposed { background: var(--primary); }
+  .hero-chart-caption { margin-top: 0.6rem; font-size: 0.74rem; color: var(--ink-soft); }
   .hero p.lede {
     font-size: 1.1rem;
     color: var(--ink-soft);
@@ -793,6 +857,8 @@
   /* Desktop: let the SF map break out of the centered text column and run
      nearly full-width, with height tied to viewport height (min 560px). */
   @media (min-width: 901px) {
+    .hero-grid { grid-template-columns: 1.3fr 1fr; }
+
     /* The tab bar and the panel below it break out together to the same 75vw box,
        so the colored panel fully encloses the map/TFP embed on every side instead
        of the map bleeding wider than its own background. */
