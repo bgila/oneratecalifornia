@@ -472,7 +472,16 @@
       if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
     }
     if (tab !== 'tfp') {
-      setTimeout(function () { map.invalidateSize(); }, 0);
+      // The map container was possibly just un-hidden (display:none -> visible) by
+      // removing the `hidden` attribute above. Leaflet caches its container size and
+      // won't notice that change until told to -- a single setTimeout(0) isn't
+      // reliably after the browser's layout pass, so do it on the next animation
+      // frame instead (and once more shortly after, since some browsers still need
+      // a second pass to pick up the new size correctly).
+      requestAnimationFrame(function () {
+        map.invalidateSize();
+        setTimeout(function () { map.invalidateSize(); }, 150);
+      });
     }
   }
 
