@@ -20,6 +20,7 @@
     --primary: #1D584C;
     --primary-dark: #1b332e;
     --primary-contrast: #ffffff;
+    --tab-active: #5c7568; /* desaturated forest green, for the active map-view tab */
 
     --gold: #D4AF37;
 
@@ -221,7 +222,7 @@
        of that header's pixel height and may need retuning if their page changes. */
     --map-hide: 190px;
     position: relative;
-    margin-top: 1.4rem;
+    margin-top: 0.9rem;
     height: 640px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -264,8 +265,8 @@
   /* ---------- SF map (ours) ---------- */
   .sfmap-section { background: var(--surface); }
   /* Folder-tab look: tabs sit flush on top of .sfmap-panel below, overlapping its
-     top border by 1px. The active tab matches the panel's background exactly so
-     the border between them visually disappears, like a folder tab in front. */
+     top border by 1px. The active tab gets a solid desaturated-green fill so it's
+     unambiguous which view is showing, rather than blending into the panel. */
   .sfmap-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -289,8 +290,9 @@
   }
   .sfmap-tab:hover { background: var(--surface-alt); }
   .sfmap-tab.active {
-    background: var(--surface-alt);
-    color: var(--ink);
+    background: var(--tab-active);
+    border-color: var(--tab-active);
+    color: #fff;
     z-index: 1;
   }
   .sfmap-panel {
@@ -791,10 +793,17 @@
   /* Desktop: let the SF map break out of the centered text column and run
      nearly full-width, with height tied to viewport height (min 560px). */
   @media (min-width: 901px) {
-    .sfmap-wrap {
-      width: calc(100vw - 3rem);
-      margin-left: calc(50% - 50vw + 1.5rem);
-      margin-right: calc(50% - 50vw + 1.5rem);
+    /* The tab bar and the panel below it break out together to the same 75vw box,
+       so the colored panel fully encloses the map/TFP embed on every side instead
+       of the map bleeding wider than its own background. */
+    .sfmap-tabs, .sfmap-panel {
+      width: 75vw;
+      max-width: 75vw;
+      margin-left: calc(50% - 37.5vw);
+      margin-right: calc(50% - 37.5vw);
+    }
+    .sfmap-wrap, .map-embed-wrap {
+      width: 100%;
       height: max(560px, 70vh);
     }
   }
