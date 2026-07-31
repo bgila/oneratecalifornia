@@ -151,6 +151,11 @@
             <input type="checkbox" id="sfmap-mf-toggle" checked>
             Show multi-family buildings
           </label>
+          <span class="hint">Color by:</span>
+          <div class="sfmap-metric-toggle" id="sfmap-homes-metric-toggle" role="group" aria-label="Home color metric">
+            <button type="button" class="metric-btn active" data-homes-metric="dollar">$ subsidy</button>
+            <button type="button" class="metric-btn" data-homes-metric="pct">% subsidy</button>
+          </div>
           <span class="sfmap-count" id="sfmap-count">Loading…</span>
         </span>
         <span class="sfmap-controls-extra" id="sfmap-extra-neighborhoods" hidden>
@@ -165,12 +170,12 @@
       <div class="sfmap-wrap" id="sfmap-panel-map">
         <div id="sfmap-leaflet" role="img" aria-label="Map of San Francisco properties colored by estimated property tax subsidy"></div>
         <div class="sfmap-legend" id="sfmap-legend-homes" aria-hidden="true">
-          <span class="legend-title">Est. yearly subsidy</span>
-          <div><span class="swatch swatch-tier-0"></span>pays more than market rate</div>
-          <div><span class="swatch swatch-tier-1"></span>$0 – 5k</div>
-          <div><span class="swatch swatch-tier-2"></span>$5k – 15k</div>
-          <div><span class="swatch swatch-tier-3"></span>$15k – 30k</div>
-          <div><span class="swatch swatch-tier-4"></span>$30k +</div>
+          <span class="legend-title" id="sfmap-legend-homes-title">Est. yearly subsidy</span>
+          <div><span class="swatch swatch-tier-0"></span><span id="sfmap-legend-homes-t0">pays more than market rate</span></div>
+          <div><span class="swatch swatch-tier-1"></span><span id="sfmap-legend-homes-t1">$0 – 5k</span></div>
+          <div><span class="swatch swatch-tier-2"></span><span id="sfmap-legend-homes-t2">$5k – 15k</span></div>
+          <div><span class="swatch swatch-tier-3"></span><span id="sfmap-legend-homes-t3">$15k – 30k</span></div>
+          <div><span class="swatch swatch-tier-4"></span><span id="sfmap-legend-homes-t4">$30k +</span></div>
           <div class="legend-sep sf-only"><span class="swatch swatch-mf-indicator"></span>square = multi-family building</div>
         </div>
         <div class="sfmap-legend sfmap-legend-gradient" id="sfmap-legend-neighborhoods" aria-hidden="true" hidden>

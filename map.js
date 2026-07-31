@@ -135,7 +135,12 @@
   methodElements.forEach(function (el) {
     el.addEventListener('toggle', function () { methodologyOpen = el.open; });
   });
-  var metricButtons = document.querySelectorAll('.metric-btn');
+  // Selected narrowly (not just '.metric-btn') since the homes-color-metric toggle
+  // below reuses the same button styling but is a separate, independently-wired
+  // control group.
+  var metricButtons = document.querySelectorAll('.metric-btn[data-metric]');
+  var homesMetricButtons = document.querySelectorAll('.metric-btn[data-homes-metric]');
+  var homesMetric = 'dollar';
 
   var fmtUSD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
@@ -176,12 +181,47 @@
     });
   })();
 
-  function tierOf(subsidy) {
+  function tierOfDollar(subsidy) {
     if (subsidy < 0) return 0;
     if (subsidy < 5000) return 1;
     if (subsidy < 15000) return 2;
     if (subsidy < 30000) return 3;
     return 4;
+  }
+  // Subsidy as a % of the home's own market value -- (market - assessed) / market,
+  // the same ratio the "Neighborhood averages" tab's "% subsidy" metric uses.
+  // Unlike the dollar tiers, this is comparable across counties with very different
+  // price levels, and (for multi-family) needs no per-unit division: the ratio is
+  // already unit-count-independent.
+  function tierOfPct(pct) {
+    if (pct <= 0) return 0;
+    if (pct < 25) return 1;
+    if (pct < 50) return 2;
+    if (pct < 75) return 3;
+    return 4;
+  }
+  function pctSubsidy(assessed, market) {
+    return market > 0 ? (market - assessed) / market * 100 : 0;
+  }
+
+  var HOMES_LEGEND_TEXT = {
+    dollar: {
+      title: 'Est. yearly subsidy',
+      t0: 'pays more than market rate', t1: '$0 – 5k', t2: '$5k – 15k', t3: '$15k – 30k', t4: '$30k +'
+    },
+    pct: {
+      title: 'Est. subsidy, % of value',
+      t0: 'pays more than market rate', t1: '0% – 25%', t2: '25% – 50%', t3: '50% – 75%', t4: '75%+'
+    }
+  };
+  function applyHomesLegendText() {
+    var t = HOMES_LEGEND_TEXT[homesMetric];
+    document.getElementById('sfmap-legend-homes-title').textContent = t.title;
+    document.getElementById('sfmap-legend-homes-t0').textContent = t.t0;
+    document.getElementById('sfmap-legend-homes-t1').textContent = t.t1;
+    document.getElementById('sfmap-legend-homes-t2').textContent = t.t2;
+    document.getElementById('sfmap-legend-homes-t3').textContent = t.t3;
+    document.getElementById('sfmap-legend-homes-t4').textContent = t.t4;
   }
 
   // ---------- map + basemap ----------
@@ -244,6 +284,7 @@
       popupRow('Assessed value', fmtUSD0.format(sfrAssessed[i])),
       popupRow('Est. market value', fmtUSD0.format(sfrMarket[i])),
       popupRow('Est. subsidy today', fmtUSD0.format(sfrSubsidy[i]) + '/yr'),
+      popupRow('Subsidy, % of value', Math.round(pctSubsidy(sfrAssessed[i], sfrMarket[i])) + '%'),
       popupRow('Change under reform', (sfrChange[i] >= 0 ? '+' : '') + fmtUSD0.format(sfrChange[i]) + '/yr'),
     ];
     return '<div class="sfmap-popup-title">' + (sfrAddr[i] || 'Property') + '</div>' +
@@ -263,6 +304,7 @@
       rows.push(popupRow('Est. market value / unit', fmtUSD0.format(mfMarket[i] / units)));
     }
     rows.push(popupRow('Est. subsidy today', fmtUSD0.format(mfSubsidy[i]) + '/yr'));
+    rows.push(popupRow('Subsidy, % of value', Math.round(pctSubsidy(mfAssessed[i], mfMarket[i])) + '%'));
     rows.push(popupRow('Change under reform', (mfChange[i] >= 0 ? '+' : '') + fmtUSD0.format(mfChange[i]) + '/yr'));
     return '<div class="sfmap-popup-title">' + (mfAddr[i] || 'Building') + ' (multi-family)</div>' +
       '<dl class="sfmap-popup-dl">' + rows.join('') + '</dl>' +
@@ -384,37 +426,55 @@
     return 6;
   }
 
+  // Kept parallel to the data arrays so toggling the color metric can restyle
+  // markers already on the map in place, instead of tearing down and rebuilding
+  // ~100k-300k circleMarkers (slow) just to change their fill color.
+  var sfrMarkers = [], mfMarkers = [];
+
+  function sfrTierColor(i) {
+    var t = homesMetric === 'pct' ? tierOfPct(pctSubsidy(sfrAssessed[i], sfrMarket[i])) : tierOfDollar(sfrSubsidy[i]);
+    return TIER_COLORS[t];
+  }
+  function mfTierColor(i) {
+    var t = homesMetric === 'pct'
+      ? tierOfPct(pctSubsidy(mfAssessed[i], mfMarket[i]))
+      : tierOfDollar(mfUnits[i] > 0 ? mfSubsidy[i] / mfUnits[i] : mfSubsidy[i]);
+    return TIER_COLORS[t];
+  }
+
   function buildSFRMarkers(count) {
     var r = sfrRadiusForZoom(map.getZoom());
+    sfrMarkers = new Array(count);
     for (var i = 0; i < count; i++) {
-      var t = tierOf(sfrSubsidy[i]);
       var marker = L.circleMarker([sfrLat[i], sfrLon[i]], {
         renderer: canvasRenderer,
         radius: r,
         weight: 0,
-        fillColor: TIER_COLORS[t],
+        fillColor: sfrTierColor(i),
         fillOpacity: 0.85,
       });
       marker.bindPopup(makeSFRPopupFn(i), { maxWidth: popupMaxWidth() });
       marker.addTo(sfrLayer);
+      sfrMarkers[i] = marker;
     }
   }
   function makeSFRPopupFn(i) { return function () { return sfrPopupHtml(i); }; }
 
   function buildMFMarkers(count) {
     var r = mfRadiusForZoom(map.getZoom());
+    mfMarkers = new Array(count);
     for (var i = 0; i < count; i++) {
-      var t = tierOf(mfUnits[i] > 0 ? mfSubsidy[i] / mfUnits[i] : mfSubsidy[i]);
       var marker = L.circleMarker([mfLat[i], mfLon[i]], {
         renderer: canvasRenderer,
         radius: r,
         weight: 0,
         squareMarker: true,
-        fillColor: TIER_COLORS[t],
+        fillColor: mfTierColor(i),
         fillOpacity: 0.9,
       });
       marker.bindPopup(makeMFPopupFn(i), { maxWidth: popupMaxWidth() });
       marker.addTo(mfLayer);
+      mfMarkers[i] = marker;
     }
   }
   function makeMFPopupFn(i) { return function () { return mfPopupHtml(i); }; }
@@ -574,6 +634,29 @@
       metricButtons.forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       applyNeighborhoodMetric(btn.getAttribute('data-metric'));
+    });
+  });
+
+  // ---------- individual-homes color metric ($ subsidy vs % of value) ----------
+  // Works for every county (unlike the neighborhoods tab's $/% toggle, which is
+  // SF-only): restyles already-built markers in place rather than rebuilding them,
+  // since a full rebuild is noticeably slow at this point count.
+  function recolorHomes() {
+    for (var i = 0; i < sfrMarkers.length; i++) {
+      if (sfrMarkers[i]) sfrMarkers[i].setStyle({ fillColor: sfrTierColor(i) });
+    }
+    for (var j = 0; j < mfMarkers.length; j++) {
+      if (mfMarkers[j]) mfMarkers[j].setStyle({ fillColor: mfTierColor(j) });
+    }
+  }
+
+  homesMetricButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      homesMetricButtons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      homesMetric = btn.getAttribute('data-homes-metric');
+      applyHomesLegendText();
+      recolorHomes();
     });
   });
 
@@ -758,6 +841,7 @@
     mfLayer.clearLayers();
     sfrLoaded = false; mfLoaded = false; sfrFuse = null; mfFuse = null;
     sfrCount = 0; mfCount = 0;
+    sfrMarkers = []; mfMarkers = [];
 
     neighborhoodPinned = false;
     activeNeighborhood = null;
