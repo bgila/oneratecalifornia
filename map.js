@@ -66,9 +66,16 @@
 
   // Tier colors: single source of truth is styles.css (--tier-0..4), read here at load
   // time so the legend swatches and the map markers can never silently drift apart.
+  // Falls back to a hardcoded copy (keep in sync with styles.css) if the CSS read comes
+  // back empty -- observed on iOS Safari, where getComputedStyle can run before the
+  // external stylesheet is fully applied, silently turning every marker Leaflet's
+  // default blue instead of erroring.
+  var TIER_COLORS_FALLBACK = ['#ffffff', '#efe9da', '#a3bc9f', '#5b7d63', '#1b332e'];
   var TIER_COLORS = (function () {
     var cs = getComputedStyle(document.documentElement);
-    return [0, 1, 2, 3, 4].map(function (i) { return cs.getPropertyValue('--tier-' + i).trim(); });
+    return [0, 1, 2, 3, 4].map(function (i) {
+      return cs.getPropertyValue('--tier-' + i).trim() || TIER_COLORS_FALLBACK[i];
+    });
   })();
 
   function tierOf(subsidy) {
