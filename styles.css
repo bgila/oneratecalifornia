@@ -410,6 +410,10 @@
      hidden via visibility (not display) on the Tax Fairness Project tab, so its
      row keeps the same height instead of the layout below jumping up. */
   .sfmap-jumpto { display: contents; }
+  .sfmap-county-select { display: contents; }
+  /* Hidden when a county other than SF is selected -- boundaries, per-unit
+     neighborhood averages, and the multi-family layer only exist for SF so far. */
+  #sfmap.non-sf-county .sf-only { display: none !important; }
   .sfmap-metric-toggle { display: inline-flex; gap: 0.4rem; }
   .metric-btn {
     appearance: none;

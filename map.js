@@ -12,6 +12,104 @@
   var mfToggle = document.getElementById('sfmap-mf-toggle');
   var searchInput = document.getElementById('sfmap-search');
   var searchResults = document.getElementById('sfmap-search-results');
+  var sfmapSectionEl = document.getElementById('sfmap');
+  var countySelectEl = document.getElementById('sfmap-county');
+  var leadEl = document.getElementById('sfmap-lead');
+  var sfMethodTextEl = document.getElementById('sfmap-methodology-sf-text');
+  var countyMethodTextEl = document.getElementById('sfmap-methodology-county-text');
+
+  // Every county here shares the exact same map-data CSV schema SF's own
+  // pipeline produces (lat,lon,addr,sqft,assessed,market,subsidy,change[,county]),
+  // just from a different estimation method depending on what that county's own
+  // assessor data actually supports -- see each pipeline/<county>_methodology.json
+  // for the full writeup. center/zoom are each county's own real data's median
+  // point and a 90th-percentile-spread-derived zoom, not guessed.
+  var COUNTIES = {
+    sf: {
+      label: 'San Francisco', file: 'data/sf-map-data.csv', hasMF: true, hasNeighborhoods: true,
+      center: [37.7627, -122.4494], zoom: 12.4,
+      lead: 'We mapped the subsidy in SF, down to each single-family home, condo, and multi-family building. Prop 13 applies to commercial property too, but we focused on residential property.'
+    },
+    alameda: {
+      label: 'Alameda', file: 'data/alameda-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [37.6957, -122.0948], zoom: 10,
+      lead: 'Alameda County, single-family homes and condos.',
+      methodology: [
+        'Comps are real reassessment events, confirmed the same way as San Francisco’s: a parcel whose total assessed value jumps ≥ 8% year-over-year, matched to the county’s own recorded transfer-date field, is treated as a real market reset. Older comps are appreciation-adjusted to today’s-equivalent price via FRED’s house price index for Alameda County, the same technique used for SF’s own older comps.',
+        'One real difference from SF: Alameda’s public data doesn’t include a home’s building square footage at all, so market value is estimated per-parcel in whole dollars (the median total value of the 7 nearest confirmed comps), not per-square-foot. That’s a coarser estimate than SF’s — it can’t distinguish a larger home from a smaller one on a similar lot as precisely.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    inyo: {
+      label: 'Inyo', file: 'data/inyo-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [37.3515, -118.4145], zoom: 8,
+      lead: 'Inyo County (Bishop, Independence, Lone Pine), single-family homes.',
+      methodology: [
+        'This is the roughest estimate on this map, included because it’s the best available given what Inyo County publishes: there’s no sale-date field and no year-by-year assessment history at all, so there’s no way to detect a real reassessment event the way SF’s or Alameda’s data allows.',
+        'Instead, market value is benchmarked off Zillow’s public home-value index (ZHVI) for each ZIP code. Inyo’s own data also doesn’t distinguish a home’s building size from its lot size, so every home in a given ZIP code gets that ZIP’s same typical-home-value estimate, regardless of its own square footage — it can’t tell a large home from a small one. A few rural ZIP codes with too few sales for Zillow to index borrow their nearest covered neighbor’s rate instead.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    losangeles: {
+      label: 'Los Angeles', file: 'data/losangeles-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [34.1861, -118.5738], zoom: 11,
+      lead: 'A slice of Los Angeles County — the western San Fernando Valley and Conejo corridor — single-family homes.',
+      methodology: [
+        'Los Angeles County’s own assessor data is enormous (tens of gigabytes), so this map covers a real, contiguous slice of it — the western San Fernando Valley and Conejo corridor (Woodland Hills, West Hills, Chatsworth, Canoga Park, Winnetka, Reseda, Tarzana, Encino, Van Nuys, Calabasas, Agoura Hills, Westlake Village, Hidden Hills) — rather than the whole county, for now.',
+        'Within that slice, the method matches San Francisco’s exactly: comps are real reassessment events (an ≥ 8% year-over-year value jump matched to a recorded sale date), appreciation-adjusted to today’s-equivalent price via FRED’s house price index for LA County.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    placer: {
+      label: 'Placer', file: 'data/placer-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [38.8146, -121.2609], zoom: 9,
+      lead: 'Placer County (Roseville, Rocklin, Auburn, Tahoe City), single-family homes and condos.',
+      methodology: [
+        'Placer County’s assessor data is a single current snapshot, with no year-by-year history, so a reassessment jump can’t be observed the way it can for San Francisco or Alameda. Instead, comps are identified by how recently a parcel last changed hands (its own recorded transaction date) — a parcel transferred in the last few years almost certainly has its assessed value already reset near true market value.',
+        'One data quirk found and corrected: roughly three-quarters of transaction-date records shared one exact timestamp, evidently a one-time system migration rather than real simultaneous sales — those were excluded, and only genuinely distinct, recent transaction dates were used as comps.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    riverside: {
+      label: 'Riverside', file: 'data/riverside-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [33.7927, -117.1817], zoom: 9,
+      lead: 'Riverside County, a sample of single-family homes.',
+      methodology: [
+        'Riverside County’s public data has no recorded sale-date field, and (unlike initial scouting suggested) its year-by-year value history turned out to only hold a single active roll year, not a real archive. So comps here are identified a third way: each parcel’s own recorded Prop 13 base-year (the year its assessment was last legally reset, by sale or new construction), rather than a value jump or a transfer-date field. Older comps are appreciation-adjusted to today’s-equivalent price via FRED’s house price index for Riverside County.',
+        'Because there’s no way to independently confirm a base-year reset against an actual recorded sale, this method accepts a higher false-positive rate on what counts as a valid comp than San Francisco’s approach — some flagged resets may be corrections or exemption changes rather than real transactions. This map also covers roughly 1 in 5 single-family parcels countywide (a systematic sample), not every one.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    sanjoaquin: {
+      label: 'San Joaquin', file: 'data/sanjoaquin-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [37.9295, -121.3025], zoom: 10,
+      lead: 'San Joaquin County (Stockton, Tracy, Manteca, Lodi), single-family homes.',
+      methodology: [
+        'San Joaquin County’s assessor data has no sale-date field and no year-by-year history at all, so there’s no way to detect a real reassessment event the way SF’s or Alameda’s data allows.',
+        'Instead, market value is benchmarked off Zillow’s public home-value index (ZHVI) for each ZIP code, converted to an implied $/sqft using that ZIP’s own median home size, then applied to each home’s own square footage — a real, if less rigorous, alternative to the comps-based method used elsewhere on this map. A handful of ZIP codes without enough sales for Zillow to index borrow their nearest covered neighbor’s rate instead.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    santabarbara: {
+      label: 'Santa Barbara', file: 'data/santabarbara-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [34.6330, -120.2717], zoom: 9,
+      lead: 'Santa Barbara County, single-family homes.',
+      methodology: [
+        'Santa Barbara County’s assessor data is a single current snapshot, with no year-by-year history, so comps are identified by how recently a parcel last changed hands (its own recorded transfer date) instead of a reassessment jump. Every comp found this way transacted around 2017–2019, so those older prices are appreciation-adjusted to today’s-equivalent value via FRED’s house price index for Santa Barbara County.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    },
+    sonoma: {
+      label: 'Sonoma', file: 'data/sonoma-map-data.csv', hasMF: false, hasNeighborhoods: false,
+      center: [38.4350, -122.7019], zoom: 10,
+      lead: 'Sonoma County, single-family homes.',
+      methodology: [
+        'Sonoma County’s public data includes something no other county here has: real recorded sale prices, not just assessed-value jumps used as a stand-in for them. Market value is built directly from the nearest actual sold comps (real transaction price ÷ building size), appreciation-adjusted to today’s-equivalent price via FRED’s house price index for Sonoma County — the most direct method used anywhere on this map.',
+        'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
+      ]
+    }
+  };
+  var currentCounty = 'sf';
 
   var mapPanelEl = document.getElementById('sfmap-panel-map');
   var tfpPanelEl = document.getElementById('sfmap-panel-tfp');
@@ -172,6 +270,33 @@
       (units ? '; per-unit figures divide the whole building evenly' : ', not per-unit') + '.</div>';
   }
 
+  // Quote-aware CSV field split (RFC4180-ish) -- SF's addresses are a single
+  // token with no commas, so a naive split(',') worked fine there, but several
+  // of the other counties' pipelines format addresses as "street, city, state"
+  // and quote the field, which a naive split silently shreds into extra
+  // columns and shifts every numeric field that follows.
+  function splitCSVLine(line) {
+    var out = [], field = '', inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+        } else {
+          field += ch;
+        }
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        out.push(field); field = '';
+      } else {
+        field += ch;
+      }
+    }
+    out.push(field);
+    return out;
+  }
+
   function parseSFRCSV(text) {
     var lines = text.split('\n');
     if (lines[lines.length - 1].trim() === '') lines.pop();
@@ -188,7 +313,7 @@
     for (var i = 1; i < lines.length; i++) {
       var line = lines[i];
       if (!line) continue;
-      var c = line.split(',');
+      var c = splitCSVLine(line);
       if (c.length < 8) continue;
       var lat = parseFloat(c[0]), lon = parseFloat(c[1]);
       if (!isFinite(lat) || !isFinite(lon)) continue;
@@ -222,7 +347,7 @@
     for (var i = 1; i < lines.length; i++) {
       var line = lines[i];
       if (!line) continue;
-      var c = line.split(',');
+      var c = splitCSVLine(line);
       if (c.length < 9) continue;
       var lat = parseFloat(c[0]), lon = parseFloat(c[1]);
       if (!isFinite(lat) || !isFinite(lon)) continue;
@@ -570,10 +695,16 @@
   });
 
   // ---------- data loading (lazy: only once the map scrolls into view) ----------
-  function loadSFRData() {
-    fetch('data/sf-map-data.csv')
+  // requestToken guards against a slow-to-arrive response from a county the user
+  // has since switched away from overwriting the currently-selected county's data.
+  var requestToken = 0;
+  var neighborhoodExtrasLoaded = false;
+
+  function loadSFRData(fileUrl, token) {
+    fetch(fileUrl)
       .then(function (r) { if (!r.ok) throw new Error('fetch failed: ' + r.status); return r.text(); })
       .then(function (text) {
+        if (token !== requestToken) return;
         sfrCount = parseSFRCSV(text);
         buildSFRMarkers(sfrCount);
         sfrLoaded = true;
@@ -582,14 +713,17 @@
         updateCountText();
       })
       .catch(function (err) {
+        if (token !== requestToken) return;
         loadingEl.textContent = 'Could not load map data (' + err.message + ').';
       });
   }
 
   function loadMFData() {
+    var token = requestToken;
     fetch('data/sf-map-data-mf.csv')
       .then(function (r) { if (!r.ok) throw new Error('fetch failed: ' + r.status); return r.text(); })
       .then(function (text) {
+        if (token !== requestToken) return;
         mfCount = parseMFCSV(text);
         buildMFMarkers(mfCount);
         mfLoaded = true;
@@ -599,20 +733,68 @@
       .catch(function () { /* multi-family layer is additive; map still works without it */ });
   }
 
-  function loadAll() {
-    loadNeighborhoodExtras();
-    loadSFRData();
-    loadMFData();
+  function renderCountyMethodology(cfg) {
+    if (cfg.methodology) {
+      sfMethodTextEl.hidden = true;
+      countyMethodTextEl.hidden = false;
+      countyMethodTextEl.innerHTML = cfg.methodology.map(function (p) {
+        return '<p class="faq-answer">' + p + '</p>';
+      }).join('');
+    } else {
+      sfMethodTextEl.hidden = false;
+      countyMethodTextEl.hidden = true;
+      countyMethodTextEl.innerHTML = '';
+    }
   }
+
+  function switchCounty(id) {
+    var cfg = COUNTIES[id];
+    if (!cfg || id === currentCounty && sfrLoaded) return;
+    currentCounty = id;
+    requestToken++;
+    var token = requestToken;
+
+    sfrLayer.clearLayers();
+    mfLayer.clearLayers();
+    sfrLoaded = false; mfLoaded = false; sfrFuse = null; mfFuse = null;
+    sfrCount = 0; mfCount = 0;
+
+    neighborhoodPinned = false;
+    activeNeighborhood = null;
+    if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
+    nbInfoEl.hidden = true;
+    nbSelect.value = '';
+
+    sfmapSectionEl.classList.toggle('non-sf-county', id !== 'sf');
+    if (activeTab === 'neighborhoods' && id !== 'sf') { setActiveTab('homes'); }
+
+    leadEl.textContent = cfg.lead;
+    renderCountyMethodology(cfg);
+    mapEl.setAttribute('aria-label', 'Map of ' + cfg.label + ' properties colored by estimated property tax subsidy');
+
+    map.setView(cfg.center, cfg.zoom);
+    loadingEl.style.display = '';
+    loadingEl.textContent = 'Loading properties…';
+    updateCountText();
+
+    loadSFRData(cfg.file, token);
+    if (cfg.hasMF) { loadMFData(); }
+    if (cfg.hasNeighborhoods && !neighborhoodExtrasLoaded) {
+      neighborhoodExtrasLoaded = true;
+      loadNeighborhoodExtras();
+    }
+  }
+
+  countySelectEl.addEventListener('change', function () { switchCounty(this.value); });
 
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) { loadAll(); io.disconnect(); }
+        if (entry.isIntersecting) { switchCounty(countySelectEl.value || 'sf'); io.disconnect(); }
       });
     }, { rootMargin: '300px' });
     io.observe(wrap);
   } else {
-    loadAll();
+    switchCounty(countySelectEl.value || 'sf');
   }
 })();

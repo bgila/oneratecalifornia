@@ -1,0 +1,42 @@
+{
+  "methodology": {
+    "source_assessed_values": "Placer County GIS Services: \"Parcels Public\" feature layer (Parcels_Public/FeatureServer, layer 4)",
+    "source_url": "https://gis-placercounty.opendata.arcgis.com/ (search \"Parcels Public\"); service: https://services6.arcgis.com/PArfeTGcwA9RGNzN/arcgis/rest/services/Parcels_Public/FeatureServer/4",
+    "scope": "Countywide, Single Family Residential (Use_Cd_N = 'SINGLE FAM RES, HALF PLEX') + individually-deeded condos (Use_Cd_N = 'SINGLE FAM RES, CONDO')",
+    "data_shape_vs_sf": "Placer's public parcel data is a single current-roll snapshot with no queryable multi-year assessed-value history, so SF's year-over-year 'jump-confirmed comp' detection (03_process_sfr.py) isn't possible here. Comps are instead identified from within the single snapshot using two live-verified fields: Tax_Cd_N (a plain-text ownership/exemption status) and TransactionDt (last recorded-document date).",
+    "market_value_estimation": "A parcel is a confirmed comp if Tax_Cd_N == 'NORMAL OWNERSHIP' (excluding 'PROP 8 REDUCTION' codes, whose enrolled value is the assessor's own opinion of a *declining* market value rather than a sale-confirmed reset, and 'PROP 19 BASE YEAR TRANSFER'/'PROP 19 INTERGENERATIONAL TRANSFER' codes, whose enrolled value is a prior owner's preserved lower base-year value carried onto the parcel rather than a reassessment to purchase price -- the Placer-County analog of the Prop 19 parent-child/trust transfers SF's own pipeline excludes) AND its TransactionDt falls after an auto-detected cutoff. That cutoff exists because live inspection found ~74% of all qualifying parcels share one exact TransactionDt timestamp down to the second -- a one-time system/migration artifact, not a real mass sale event -- while every TransactionDt value after that timestamp shows a plausible weekday-only cadence spread proportionally across every community in the county, consistent with a live per-transaction recorder feed. Only TransactionDt values strictly after that auto-detected day are trusted. Each confirmed comp's own $/sqft (LandValue + Structure, divided by StructureSF, the assessor's building/living-area field -- LandSF is lot size and is not used for pricing) is used directly, unadjusted for appreciation since the whole confirmed window spans only a few months. For each target parcel, the 7 nearest confirmed comps by straight-line distance set the estimate: median $/sqft x the parcel's own StructureSF. Estimated market value is then floored at the parcel's current assessed value (LandValue + Structure), for the same reason as SF: a home's true value essentially never sits below what Prop 13 has grown its assessment to, so a below-assessed estimate is almost always the model undershooting rather than a real declining-value home.",
+    "deviation_from_assigned_methodology": "The assignment anticipated using raw TransactionDt recency (a ~2-3 year window), optionally sharpened by a Tax_Cd_N value that explicitly flags 'just reassessed at a new base year following a sale.' Live data had neither in the form expected: Tax_Cd_N's values are ownership/exemption *categories* (there is no distinct 'recently sold' code beyond the default 'NORMAL OWNERSHIP'), and raw TransactionDt recency is dominated by a single mass-migration timestamp shared by ~74% of parcels, which a naive 'last 2-3 years' filter would have wrongly counted as ~111k simultaneous market resets. This script instead auto-detects that migration day (any single day whose TransactionDt count exceeds 20x the median day's count, floored at 5,000) and excludes it and everything before it, keeping only the post-migration era's per-transaction dates as the comp signal. This produced 11,184 confirmed comps (~7.4% of the qualifying roll), a comp density comparable to SF's own jump-confirmed share (~10.7%).",
+    "tax_assumptions": {
+      "current_general_rate_pct": 1.0,
+      "bond_rate_pct_note": "held at SF's bond rate for cross-county comparability (deliberate simplification, not Placer's actual bond rate)",
+      "bond_rate_pct": 0.18,
+      "proposed_general_rate_pct": 0.7
+    },
+    "transaction_dt_cutoff_used_iso": "2025-06-27T00:00:00",
+    "transaction_dt_cutoff_source": "auto_detected_sentinel_migration_day",
+    "generated": "2026-07-31"
+  },
+  "counts": {
+    "total_parcels": 150477,
+    "confirmed_recent_transaction_comps": 11184,
+    "communities": 36,
+    "estimated_rows_written": 150477
+  },
+  "stats": {
+    "subsidy_vs_market_today": {
+      "p10": 0,
+      "median": 68,
+      "mean": 1084,
+      "p90": 3117,
+      "p99": 8885,
+      "min": 0,
+      "max": 116254
+    },
+    "under_reform": {
+      "would_pay_more": 35103,
+      "would_pay_less": 115374,
+      "pct_pay_more": 23.3,
+      "pct_pay_less": 76.7
+    }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "county": "Inyo",
+  "generated": "2026-07-31",
+  "summary": "Inyo County (Bishop, Big Pine, Independence, Lone Pine, Death Valley/Tecopa area) has no internal sale-price or reassessment-history signal available at all -- its public parcel API is a single current-year snapshot with no sale date and no multi-year history endpoint, so the SF-style 'jump-confirmed comp' approach used elsewhere on this site is not possible here. Market value is instead anchored on an EXTERNAL benchmark: Zillow Research's ZHVI (Zillow Home Value Index) for single-family homes, by ZIP code.",
+  "important_caveat": "This is an estimate built on an external index (ZHVI), which is itself Zillow's own smoothed/seasonally-adjusted statistical model, NOT raw transaction data or the county's own confirmed sales/reassessments. That makes this dataset one layer further removed from ground truth than the jump-confirmed-comps approach used for San Francisco elsewhere on this site, which is anchored on the county's own real reassessment events. Treat every 'market' value here as an estimate of an estimate.",
+  "data_sources": {
+    "parcels": {
+      "name": "Inyo County public ArcGIS FeatureServer (ParcelsPublic layer)",
+      "url": "https://services.arcgis.com/0jRlQ17Qmni5zEMr/arcgis/rest/services/ParcelsPublic/FeatureServer/0",
+      "coverage": "Current assessor snapshot only (AssessYear = current roll year on every row). No sale/document-date field. No historical-year endpoint.",
+      "total_parcels_countywide": 15968
+    },
+    "market_index": {
+      "name": "Zillow Research ZHVI, Single-Family Homes Time Series ($), Smoothed, Seasonally Adjusted, by ZIP Code",
+      "url": "https://files.zillowstatic.com/research/public_csvs/zhvi/Zip_zhvi_uc_sfr_tier_0.33_0.67_sm_sa_month.csv",
+      "how_url_was_verified": "Zillow's research/data page computes its CSV download links client-side and documents that it changes filenames over time, so the URL was not guessed or remembered -- it was read live out of the page's own Data Type ('ZHVI Single-Family Homes Time Series ($)') and Geography ('ZIP Code') dropdown selection on 2026-07-31.",
+      "as_of_month": "2026-06-30",
+      "national_zip_count": 26164
+    }
+  },
+  "scope": {
+    "included": "PropClass == 'SFR (SINGLE FAMILY RESIDENCE)' parcels only, 3517 of them (one additional parcel of this class had assessed value <= 0 and was dropped).",
+    "excluded": [
+      "Manufactured/mobile homes (PropClass MH ON FOUNDATION / MH IN PARK / MH ON FEE LAND / MH IN INDIAN RESERVATION / etc, roughly 2000 parcels countywide -- a large share of Inyo's actual housing stock, but a distinct assessor property class not clearly represented by ZHVI's single-family index, and with no separate way to size or comp them in this dataset)",
+      "'SFR AND SFR' / 'SFR AND DUPLEX' parcels (multiple structures on one parcel; one TotalVal can't be cleanly split between them)",
+      "Condos, 2-4 unit residences, and all commercial/vacant/agricultural/institutional classes"
+    ]
+  },
+  "assessed_value_definition": {
+    "formula": "assessed = LandVal + ImproveVal + FixtureVal",
+    "why_not_totalval": "The API's own TotalVal field was verified (across every parcel with a nonzero ExemptVal) to equal LandVal + ImproveVal + FixtureVal - ExemptVal, where ExemptVal is almost always exactly $7,000 -- California's flat homeowner's exemption. San Francisco's pipeline never subtracts any exemption from its assessed_total, so using TotalVal here instead of the gross Land+Improve+Fixture sum would understate Inyo's assessed baseline for no principled reason and inflate every owner-occupied parcel's apparent subsidy by exactly the exemption amount. LandVal+ImproveVal+FixtureVal was used to keep the two counties' 'assessed' figures on the same footing."
+  },
+  "why_no_internal_comps": "Detecting a 'jump-confirmed comp' (SF's method) requires seeing a parcel's assessed value jump far more than Prop 13's ~2%/yr cap allows, cross-checked against a recorded sale date near that jump. Inyo's ArcGIS parcel layer has neither ingredient: it is a single current-year snapshot (no prior-year history to compare against) and has no sale-date or document-date field at all. There is therefore no way to build any internal comp anywhere in this county.",
+  "sqft_field_investigation": {
+    "question": "Does Inyo's 'LotSqFeet' field mean parcel/lot size or building/living area?",
+    "finding": "Verified live against the API: LotSqFeet is PARCEL/LOT area, not building area. Example: APN 0010110600, a single 'SFR (SINGLE FAMILY RESIDENCE)' parcel at 751 Home St, Bishop, carries LotSqFeet=23,600 (about half an acre) -- obviously a lot size, not a home's floor area. The GIS-computed SqFeet_gis field is numerically almost identical to LotSqFeet on every parcel checked, confirming both are just the parcel polygon's area. The complete field list for this layer (OBJECTID, PIN, APN, GP, Inyo_Zonin, AssessYear, PersProp, LandVal, ImproveVal, TotalVal, ExemptVal, FixtureVal, UseCode, TxRateArea, LegalDescr, PropClass, ParcAdd1/City/State/ZIP, Neighborhd, MultiOwner, Width, Depth, LotSqFeet, LotAcres, LotType, Acres_gis, SqFeet_gis, RECORD_DOC_INFO, Taxmaps, enc_docs, GlobalID, Shape__Area, Shape__Length) contains no building/living-area field of any kind.",
+    "consequence": "The assigned method (zip_dollar_per_sqft = ZHVI / median_building_sqft_in_zip, then parcel_market_value = zip_dollar_per_sqft * parcel_building_sqft) cannot be computed for any ZIP in this county -- not because of sparse coverage in a few ZIPs, but because the building-sqft input doesn't exist anywhere in this dataset."
+  },
+  "methodology_deviation": {
+    "what_was_assigned": "zip_dollar_per_sqft = ZHVI[zip] / median_building_sqft[zip]; parcel_market_value = zip_dollar_per_sqft * parcel_own_building_sqft",
+    "what_was_done_instead": "A PER-PROPERTY (not per-sqft) estimate, exactly the documented fallback for this situation: every single-family parcel in a ZIP is assigned that ZIP's own ZHVI value directly as its starting market-value estimate (no sqft adjustment at all), then floored at the parcel's own assessed value.",
+    "why": "No building-sqft field exists anywhere in Inyo's parcel data (see sqft_field_investigation above), so the per-sqft version of the assigned method is not computable for this county at all, in any ZIP.",
+    "accuracy_cost": "This cannot distinguish a large home from a small one within the same ZIP -- every single-family parcel in, say, Bishop's 93514 gets the same $605,747 starting estimate regardless of its actual size, before the assessed-value floor differentiates outcomes by how far Prop 13 has suppressed each one's own assessment below that shared ZIP figure. This is a real, acknowledged accuracy limitation, traded off against the alternative of fabricating a building-size figure or excluding the county's roughly 3,500 single-family parcels entirely.",
+    "sqft_column_in_output": "The output CSV's 'sqft' column (present because the CSV schema is shared across all counties on this site) is filled with LotSqFeet -- LOT size, not building size. This is NOT comparable to San Francisco's 'sqft' column (building/living area) and is not used anywhere in this county's market-value math. Flagged here explicitly so it isn't misread downstream."
+  },
+  "market_value_floor": "Estimated market value is floored at the parcel's own assessed value (max(zhvi_value, assessed)), for the same reason as SF's pipeline: a below-assessed estimate is virtually always the model undershooting -- here, a ZIP-wide typical ZHVI value that happens to sit below one specific long-held parcel's already-grown Prop 13 assessment -- rather than a real declining-value home.",
+  "zip_data_cleaning": {
+    "description": "Two single-family parcels carried an internally inconsistent ZIP (the situs city field contradicted the ZIP field) and were corrected to the ZIP implied by their own city before ZHVI lookup, rather than trusting the literal ZIP or leaving them as 'uncovered'.",
+    "corrections": [
+      {
+        "apn": "0182600300",
+        "address": "105 Pine Rd, Big Pine",
+        "recorded_zip": "95313 (Crows Landing, Stanislaus County -- 200+ miles away)",
+        "corrected_zip": "93513",
+        "reasoning": "95313 is 93513 with its middle two digits transposed; situs city is unambiguously Big Pine. Read as an assessor data-entry typo."
+      },
+      {
+        "apn": "0263100700",
+        "address": "290 Tuttle Creek Rd, Lone Pine",
+        "recorded_zip": "93546 (Mammoth Lakes, ~60 miles north)",
+        "corrected_zip": "93545",
+        "reasoning": "Situs city is unambiguously Lone Pine; 93546 does not match any plausible postal routing for this address. Read as a data-entry typo for 93545."
+      }
+    ]
+  },
+  "zhvi_coverage": {
+    "description": "Of the 15 distinct ZIP values present on Inyo's own single-family parcels (after the two corrections above), only 8 have direct ZHVI coverage. The rest -- unsurprisingly for single-digit-population unincorporated desert communities -- have no ZHVI series at all. ZIP coverage was checked against Zillow's full national ZIP list, not restricted to ZIPs Zillow itself attributes to Inyo County, since several of Inyo's own communities are served by out-of-county or even out-of-state (Nevada) postal ZIPs.",
+    "zips_with_direct_coverage": {
+      "93514": {"place": "Bishop", "zhvi": 605747, "parcels_direct": 2409},
+      "93545": {"place": "Lone Pine", "zhvi": 379322},
+      "93513": {"place": "Big Pine", "zhvi": 431538},
+      "93526": {"place": "Independence", "zhvi": 316130},
+      "93527": {"place": "Inyokern", "zhvi": 274890},
+      "93562": {"place": "Trona (San Bernardino Co.)", "zhvi": 63078},
+      "89060": {"place": "Pahrump, NV / Stewart Valley, CA", "zhvi": 333609},
+      "89061": {"place": "Pahrump, NV / Charleston View, CA", "zhvi": 388222}
+    },
+    "fallback_rule": "A ZIP with no direct ZHVI coverage borrows the ZHVI of the geographically nearest covered ZIP, matched by straight-line distance between that ZIP's own parcel-centroid average and each covered ZIP's parcel-centroid average (same nearest-by-location spirit as SF's neighborhood-tier fallback for comp-sparse neighborhoods).",
+    "fallback_map": {
+      "(no ZIP recorded)": {"donor_zip": "93513", "place": "Big Pine", "parcels_affected": 15, "approx_distance_miles": 6},
+      "93549 (Cartago)": {"donor_zip": "93545", "place": "Lone Pine", "parcels_affected": 48, "approx_distance_miles": 19},
+      "93530 (Keeler)": {"donor_zip": "93545", "place": "Lone Pine", "parcels_affected": 25, "approx_distance_miles": 13},
+      "93522 (Darwin)": {"donor_zip": "93562", "place": "Trona", "parcels_affected": 26, "approx_distance_miles": 31},
+      "93592 (Homewood Canyon)": {"donor_zip": "93562", "place": "Trona", "parcels_affected": 12, "approx_distance_miles": 3},
+      "92384 (Shoshone)": {"donor_zip": "89060", "place": "Pahrump, NV", "parcels_affected": 5, "approx_distance_miles": 16},
+      "92389 (Tecopa / Tecopa Hot Springs)": {"donor_zip": "89061", "place": "Pahrump, NV", "parcels_affected": 41, "approx_distance_miles": 21}
+    },
+    "parcels_affected_by_fallback": 172,
+    "parcels_affected_by_fallback_pct": 4.9,
+    "honesty_note": "4.9% of the county's priced single-family parcels (172 of 3517) are on a borrowed ZIP's ZHVI rather than their own. This is a real, if modest, fraction -- concentrated in Death Valley/Tecopa-area and a few other small unincorporated communities where no ZHVI series exists at all."
+  },
+  "tax_math": {
+    "note": "Same constants used across every county on this site, so subsidy/change figures are comparable cross-county.",
+    "current_general_rate_pct": 1.00,
+    "bond_rate_pct": 0.18,
+    "proposed_general_rate_pct": 0.70,
+    "formulas": {
+      "current_tax": "assessed * (1.00 + 0.18) / 100",
+      "market_tax_current_law": "market * (1.00 + 0.18) / 100",
+      "subsidy": "market_tax_current_law - current_tax",
+      "reform_tax": "market * (0.70 + 0.18) / 100",
+      "change": "reform_tax - current_tax"
+    }
+  },
+  "output": {
+    "csv": "data/inyo-map-data.csv",
+    "columns": ["lat", "lon", "addr", "sqft", "assessed", "market", "subsidy", "change", "county"],
+    "row_count": 3517,
+    "county_column_value": "Inyo (literal string, every row)"
+  },
+  "result_stats": {
+    "subsidy_vs_market_today_usd_per_year": {"median": 2128, "mean": 2264, "min": 0, "max": 6971},
+    "under_modeled_reform": {"would_pay_more": 2110, "would_pay_less": 1407, "pct_pay_more": 60.0, "pct_pay_less": 40.0}
+  },
+  "pipeline_files": {
+    "fetch": "pipeline/inyo_fetch.py",
+    "process": "pipeline/inyo_process.py",
+    "make_map_data": "pipeline/inyo_make_map_data.py",
+    "intermediate_outputs_not_committed": [
+      "pipeline/tmp/inyo_parcels_raw.json",
+      "pipeline/tmp/inyo_zhvi_raw.csv",
+      "pipeline/tmp/inyo-full.csv",
+      "pipeline/tmp/inyo-summary.json"
+    ]
+  }
+}

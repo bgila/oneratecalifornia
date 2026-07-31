@@ -109,19 +109,33 @@
   <section class="sfmap-section" id="sfmap" aria-labelledby="sfmap-heading">
     <div class="section-inner">
       <h2 id="sfmap-heading">The unfair status quo</h2>
-      <p class="section-lead">
+      <p class="section-lead" id="sfmap-lead">
         We mapped the subsidy in SF, down to each single-family home, condo, and multi-family building. Prop 13 applies to commercial property too, but we focused on residential property.
       </p>
 
       <div class="sfmap-tabs" role="tablist" aria-label="Map view">
         <button type="button" class="sfmap-tab active" id="sfmap-tab-homes" role="tab" aria-selected="true" aria-controls="sfmap-panel-map" data-tab="homes">Individual homes</button>
-        <button type="button" class="sfmap-tab" id="sfmap-tab-neighborhoods" role="tab" aria-selected="false" aria-controls="sfmap-panel-map" data-tab="neighborhoods">Neighborhood averages</button>
+        <button type="button" class="sfmap-tab sf-only" id="sfmap-tab-neighborhoods" role="tab" aria-selected="false" aria-controls="sfmap-panel-map" data-tab="neighborhoods">Neighborhood averages</button>
         <button type="button" class="sfmap-tab" id="sfmap-tab-tfp" role="tab" aria-selected="false" aria-controls="sfmap-panel-tfp" data-tab="tfp">Bay Area map (Tax Fairness Project)</button>
       </div>
 
       <div class="sfmap-panel">
       <div class="sfmap-controls">
-        <span class="sfmap-jumpto" id="sfmap-jumpto">
+        <span class="sfmap-county-select">
+          <label for="sfmap-county" class="hint">County:</label>
+          <select id="sfmap-county">
+            <option value="sf">San Francisco</option>
+            <option value="alameda">Alameda</option>
+            <option value="inyo">Inyo</option>
+            <option value="losangeles">Los Angeles</option>
+            <option value="placer">Placer</option>
+            <option value="riverside">Riverside</option>
+            <option value="sanjoaquin">San Joaquin</option>
+            <option value="santabarbara">Santa Barbara</option>
+            <option value="sonoma">Sonoma</option>
+          </select>
+        </span>
+        <span class="sfmap-jumpto sf-only" id="sfmap-jumpto">
           <label for="sfmap-neighborhood" class="hint">Jump to:</label>
           <select id="sfmap-neighborhood">
             <option value="">Whole city</option>
@@ -133,7 +147,7 @@
             <input type="search" id="sfmap-search" placeholder="Search an address…" autocomplete="off">
             <ul class="sfmap-search-results" id="sfmap-search-results" hidden></ul>
           </div>
-          <label class="sfmap-toggle">
+          <label class="sfmap-toggle sf-only" id="sfmap-mf-toggle-wrap">
             <input type="checkbox" id="sfmap-mf-toggle" checked>
             Show multi-family buildings
           </label>
@@ -157,7 +171,7 @@
           <div><span class="swatch swatch-tier-2"></span>$5k – 15k</div>
           <div><span class="swatch swatch-tier-3"></span>$15k – 30k</div>
           <div><span class="swatch swatch-tier-4"></span>$30k +</div>
-          <div class="legend-sep"><span class="swatch swatch-mf-indicator"></span>square = multi-family building</div>
+          <div class="legend-sep sf-only"><span class="swatch swatch-mf-indicator"></span>square = multi-family building</div>
         </div>
         <div class="sfmap-legend sfmap-legend-gradient" id="sfmap-legend-neighborhoods" aria-hidden="true" hidden>
           <span class="legend-title" id="sfmap-legend-nb-title">Avg. $ subsidy / home</span>
@@ -195,6 +209,7 @@
 
       <details class="sfmap-methodology" id="sfmap-methodology-homes">
         <summary><h3>Methodology</h3></summary>
+        <div id="sfmap-methodology-sf-text">
         <p class="faq-answer">
           Assessed values come directly from the San Francisco Assessor-Recorder's official public dataset
           (<a href="https://data.sfgov.org/Housing-and-Buildings/Assessor-Historical-Secured-Property-Tax-Rolls/wv5m-vpq2" target="_blank" rel="noopener">DataSF: Assessor Historical Secured Property Tax Rolls</a>).
@@ -228,6 +243,8 @@
           real value. It says nothing about any tenant's actual rent, only about the building owner's
           assessed-vs-market tax gap.
         </p>
+        </div>
+        <div id="sfmap-methodology-county-text" hidden></div>
       </details>
 
       <details class="sfmap-methodology" id="sfmap-methodology-neighborhoods" hidden>

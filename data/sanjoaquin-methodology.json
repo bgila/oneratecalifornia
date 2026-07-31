@@ -1,0 +1,115 @@
+{
+  "county": "San Joaquin",
+  "generated": "2026-07-31",
+  "site_context": "Extends oneratecalifornia.org (previously SF-only) to San Joaquin County. The map compares each home's current property tax (assessed value x current rate) to what it would owe if taxed on today's real market value, and to a modeled reform scenario.",
+  "data_sources": {
+    "parcel_data": {
+      "source": "San Joaquin County Assessor, via opendata.sjgov.org public ArcGIS REST API",
+      "url": "https://services2.arcgis.com/GQhSReJEO6f7tsvy/arcgis/rest/services/Parcels/FeatureServer/0",
+      "scope": "USECODE='10' (SINGLE FAMILY DWELLING(SFD)) parcels only -- excludes condos, duplexes, rural residences, and all other residential use codes.",
+      "snapshot_type": "Single current-year assessor roll snapshot (VALUE_ROLL_YEAR); no multi-year history endpoint is published for this county."
+    },
+    "market_value_benchmark": {
+      "source": "Zillow Research ZHVI, Single-Family Homes, Smoothed, Seasonally Adjusted, by ZIP Code",
+      "url": "https://files.zillowstatic.com/research/public_csvs/zhvi/Zip_zhvi_uc_sfr_tier_0.33_0.67_sm_sa_month.csv",
+      "landing_page": "https://www.zillow.com/research/data/",
+      "series_meaning": "Zillow's estimate of the typical single-family home value in the middle price tier (33rd-67th percentile) of each ZIP, smoothed and seasonally adjusted, updated monthly."
+    }
+  },
+  "methodology": {
+    "why_a_different_method_than_sf": "San Joaquin's public parcel data has no sale-date or document-date field anywhere in its 72-field schema (verified directly against the live ArcGIS service's field list and sample rows) and no multi-year history endpoint, unlike SF's assessor roll. There is therefore no internal signal at all for whether any given parcel's assessed value is fresh (near a recent purchase, so close to market value under Prop 13) or decades-stale (assessed value far below market value). SF's 'jump-confirmed comps' method (03_process_sfr.py) depends entirely on detecting a reassessment jump in multi-year history cross-checked against a sale date -- neither ingredient exists here.",
+    "estimation_steps": [
+      "1. Scope to USECODE='10' (Single Family Dwelling) parcels with usable geometry, sqft (TOTALLIV_AREA), assessed value, and a resolvable ZIP.",
+      "2. For every ZIP present in the parcel data, compute that ZIP's median TOTALLIV_AREA among its own SFD parcels -- this step uses the county's own real sqft data, not an external estimate.",
+      "3. Look up that ZIP's latest ZHVI value (a typical single-family home value for that ZIP right now) and derive an implied $/sqft = ZHVI value / median sqft.",
+      "4. Estimate each parcel's market value as (its ZIP's $/sqft) x (its own TOTALLIV_AREA).",
+      "5. Floor the estimate at the parcel's assessed value (LAND_VALUE + IMPROVEMENT_VALUE + STRUCTURE_VALUE + FIXED_EQUIP_VALUE): in today's market a home's true value essentially never sits below what Prop 13 has grown its assessment to, so a below-assessed estimate is virtually always the model undershooting rather than a real declining-value home (same reasoning SF's pipeline uses)."
+    ],
+    "rigor_caveat": "THIS IS A LESS RIGOROUS ESTIMATE THAN SF'S. SF's jump-confirmed-comps method anchors on the county's own confirmed reassessment events -- an actual Prop 13 basis reset that really happened, recorded by the county itself. San Joaquin's estimate instead anchors on ZHVI, which is itself Zillow's own smoothed, seasonally-adjusted MODEL (fit to a blend of public records and Zillow's internal estimates), not a raw, confirmed transaction feed. That makes this estimate one additional layer removed from ground truth: an estimate built on top of another organization's estimate, rather than on the county's own confirmed sales. This should not be read as equally rigorous to the SF numbers on this site -- it is the best available substitute for a county whose own data provides no sale-recency signal whatsoever.",
+    "zip_coverage_fallback": "A ZIP falls back to a borrowed rate if either: (a) Zillow has no ZHVI value for it at all (Zillow only publishes a ZHVI value once a ZIP has enough sale volume to compute a stable index, so some typically rural/sparsely-populated ZIPs have none), or (b) the ZIP has fewer than 3 usable SFD parcels of its own in the county data, too few to trust a median-sqft figure computed from them. For those, the $/sqft rate is borrowed from the geographically nearest ZIP (by mean parcel centroid, great-circle distance) that DOES have a ZHVI-derived rate, rather than fabricating a number. Parcels using a borrowed rate are tagged rate_source=nearest_zip_fallback:<ZIP> in the full per-parcel table (pipeline/tmp/sanjoaquin-full.csv) for auditability. If a ZIP has no resolvable rate at all (no ZHVI coverage anywhere nearby), its parcels are skipped entirely rather than assigned a fabricated value.",
+    "zip_assignment_note": "The parcel data's own SITUSZIP (property address ZIP) field is populated for only ~15% of SFD parcels. An earlier version of this pipeline fell back to MAILZIPPREFIX (the owner's mailing address ZIP) for the rest, but that field turned out to be a poor location proxy: it reflects wherever the OWNER receives mail (frequently a landlord, bank, or trust elsewhere in California or out of state), not where the property sits -- using it produced 1,235 distinct 'ZIPs' for a single county. Instead, every parcel's own SITUSZIP is kept verbatim when present (treated as ground truth if at least 3 parcels share it, which excludes a small number of apparent data-entry typos -- e.g. exactly one parcel carried SITUSZIP=95530, a real ZIP code but in Humboldt County, ~250 miles away). For parcels without a usable SITUSZIP, the ZIP is inferred by finding which qualifying ZIP's centroid (computed from its own SITUSZIP-labeled parcels' real lat/lon) the parcel's own lat/lon is geographically nearest to -- a nearest-neighbor classification on the same GIS coordinates already used to place the dot on the map, never the owner's mailing address. Each parcel is tagged zip_source=situs or zip_source=nearest_situs_centroid in the full table.",
+    "deviation_assessed_value_formula": "The assigned methodology specified assessed = LAND_VALUE + IMPROVEMENT_VALUE + STRUCTURE_VALUE + FIXED_EQUIP_VALUE. This was changed to assessed = LAND_VALUE + IMPROVEMENT_VALUE after verifying against the live ArcGIS service that IMPROVEMENT_VALUE is a rollup field that already equals STRUCTURE_VALUE + FIXED_EQUIP_VALUE + TREE_VINE_VALUE + PERS_PROP_VALUE (0 mismatches across a 2,000-parcel sample pulling all five value fields; STRUCTURE_VALUE + FIXED_EQUIP_VALUE alone matched IMPROVEMENT_VALUE on 178,941 of 178,991 parcels -- 99.97% -- county-wide, with the remaining 0.03% fully explained by nonzero TREE_VINE_VALUE/PERS_PROP_VALUE). Using the originally assigned formula would have added STRUCTURE_VALUE and FIXED_EQUIP_VALUE a second time on top of IMPROVEMENT_VALUE, roughly doubling the non-land component of assessed value for virtually every parcel in the county and badly distorting every downstream tax figure on the map. This was caught during development (a suspiciously-high sample assessed value prompted the check) and corrected before this dataset was finalized.",
+    "tax_assumptions": {
+      "current_general_rate_pct": 1.0,
+      "bond_rate_pct": 0.18,
+      "bond_rate_note": "Held at SF's bond rate, not San Joaquin's actual local bond rate, so subsidy/change figures stay comparable across counties on this site.",
+      "proposed_general_rate_pct": 0.7,
+      "current_tax_formula": "assessed * (1.00 + 0.18) / 100",
+      "market_tax_current_law_formula": "market * (1.00 + 0.18) / 100",
+      "subsidy_formula": "market_tax_current_law - current_tax",
+      "reform_tax_formula": "market * (0.70 + 0.18) / 100",
+      "change_formula": "reform_tax - current_tax"
+    }
+  },
+  "counts": {
+    "input_rows": 178991,
+    "dropped_no_geometry": 1,
+    "dropped_no_or_zero_sqft": 193,
+    "dropped_sqft_out_of_range": 3,
+    "dropped_no_assessed_value": 8,
+    "usable_parcels": 178786,
+    "anchor_ziplist": [
+      "95203",
+      "95204",
+      "95205",
+      "95206",
+      "95207",
+      "95209",
+      "95210",
+      "95212",
+      "95215",
+      "95219",
+      "95231",
+      "95236",
+      "95237",
+      "95240",
+      "95242",
+      "95253",
+      "95258",
+      "95304",
+      "95320",
+      "95330",
+      "95336",
+      "95337",
+      "95366",
+      "95376",
+      "95377",
+      "95391",
+      "95632",
+      "95686"
+    ],
+    "anchor_zip_count": 28,
+    "dropped_typo_zips": {
+      "95385": 2,
+      "95530": 1,
+      "95208": 1,
+      "95220": 2,
+      "95227": 1
+    },
+    "parcels_with_own_situszip": 26370,
+    "parcels_assigned_by_nearest_centroid": 152416,
+    "parcels_with_no_resolvable_zip": 0,
+    "distinct_zips_in_parcel_data": 28,
+    "zips_with_direct_zhvi_rate": 27,
+    "zips_resolved_via_nearest_zip_fallback": 1,
+    "zips_with_no_resolvable_rate": 0,
+    "unresolvable_zip_list": [],
+    "parcels_using_fallback_rate": 77,
+    "parcels_skipped_no_resolvable_rate": 0,
+    "final_rows_written": 178786
+  },
+  "stats": {
+    "subsidy": {
+      "median": 2007,
+      "mean": 2187,
+      "min": 0,
+      "max": 45025
+    },
+    "under_reform": {
+      "would_pay_more": 102900,
+      "would_pay_less": 75886,
+      "pct_pay_more": 57.6,
+      "pct_pay_less": 42.4
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "methodology": {
+    "source_assessed_values": "Alameda County ArcGIS FeatureServer: Assessor Office Secured Tax Roll layers (2019-20 through 2025-26) + Parcels layer",
+    "source_url": "https://data.acgov.org/datasets/54cc3c88fa384b28b5c456df0868fc67_0 (2025-26 roll), https://data.acgov.org/datasets/2b026350b5dd40b18ed7a321fdcdba81_0 (Parcels geometry)",
+    "scope": "Countywide, Use_Code=1100 (\"Single family residential homes used as such\") -- no down-sampling; full universe fetched",
+    "market_value_estimation": "Comps are identified the same way as San Francisco's model: by detecting actual reassessment events in 2019-2025 multi-year assessor history, not just a recorded document date. Any parcel whose Total_Net_Value jumps >=8% year-over-year, with a Latest_Document_Date within a year of that jump, is treated as a confirmed market reset. Alameda's Latest_Document_Date reflects ANY recorded document (not exclusively sales), so requiring it to coincide with an 8%+ value jump is what filters out routine non-sale recordings. Each comp's nominal post-jump value is then appreciation-adjusted to today's-equivalent price via the FRED Alameda County house price index (ATNHPIUS06001A, data/alameda-hpi.json), the same approach SF uses with its own FRED series, so a comp confirmed early in the 2019-2025 window doesn't read as artificially cheap next to a 2025-26 subject. UNLIKE SAN FRANCISCO: Alameda's public assessor data has no building square footage field anywhere (verified against every relevant layer and the county's full open-data catalog), so this model works in whole-parcel dollars rather than $/sqft. For each target home, the estimate is the median appreciation-adjusted TOTAL assessed value of the 7 nearest jump-confirmed comps by location. 'By location' means same city (Situs_City) if it has 12+ comps of its own; otherwise comps are pooled from every city in the same price quartile (ranked by each city's own comps) rather than the whole county. Cities with zero comps of their own still fall back countywide. Estimated market value is then floored at the home's current assessed value, for the same reason as SF: a below-assessed estimate is almost always the comp model undershooting rather than a real declining-value home. Known weak points: (1) whole-parcel-dollar comps blend differently-sized nearby homes together, coarser than SF's per-sqft approach; (2) Latest_Document_Date is a noisier transfer signal than SF's dedicated sale-date field.",
+    "sqft_caveat": "The 'sqft' figure in the final map CSV is parcel LOT square footage (from the parcel boundary polygon's Shape__Area on the Parcels layer, converted m^2 -> ft^2), NOT building square footage -- Alameda's public assessor data does not publish building square footage in any layer. It is informational only and is not used anywhere in the market-value estimation math above.",
+    "history_window_caveat": "Aimed for 2018-19 through 2025-26 per the assignment; the earliest Secured Tax Roll FeatureServer layer that actually exists in Alameda's ArcGIS org is 2019-20 (there is a 'Deleted_Parcel_List_2018_to_2019' layer, i.e. parcels removed from that year's roll, but no corresponding Secured_Tax_Roll_2018_to_2019 layer with values). Used 2019-20 through 2025-26 (7 years) instead.",
+    "tax_assumptions": {
+      "current_general_rate_pct": 1.0,
+      "sf_bond_rate_pct": 0.18,
+      "proposed_general_rate_pct": 0.7
+    },
+    "generated": "2026-07-31"
+  },
+  "counts": {
+    "total_parcels": 264244,
+    "jump_confirmed_comps": 47955,
+    "cities": 21,
+    "estimated_rows_written": 264244
+  },
+  "stats": {
+    "subsidy_vs_market_today": {
+      "p10": 0,
+      "median": 6081,
+      "mean": 6858,
+      "p90": 14100,
+      "p99": 24099,
+      "min": 0,
+      "max": 74131
+    },
+    "under_reform": {
+      "would_pay_more": 186301,
+      "would_pay_less": 77943,
+      "pct_pay_more": 70.5,
+      "pct_pay_less": 29.5
+    }
+  }
+}

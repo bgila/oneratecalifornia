@@ -1,0 +1,52 @@
+{
+  "methodology": {
+    "source_assessed_values": "Santa Barbara County AssessorParcels FeatureServer (ArcGIS REST), layer 0",
+    "source_url": "https://services6.arcgis.com/STxBI5x7lq6k9HIB/arcgis/rest/services/AssessorParcels/FeatureServer/0",
+    "scope": "Countywide, LandUse='SINGLE FAMILY RESIDENCE'",
+    "no_multiyear_history": "Unlike San Francisco's assessor roll, this county's public feed is a single current-snapshot table with no per-year history, so a year-over-year assessed-value 'jump' cannot be detected here.",
+    "market_value_estimation": "Comps are parcels whose current roll value was just reset by an actual change-of-ownership transfer, identified via two signals combined: (1) ValReason (the code explaining why this year's value is what it is) is one of ['S', 'T'] -- 'S' (Sale) or 'T' (Transfer), the two codes among the 19 observed live values that plausibly mean a full reassessment to market value occurred, as opposed to routine ~2%/yr Prop-13 growth ('IF', the majority case), a transferred-in low base value from a Prop 60/90/19-style transfer ('BVT', 'AGE'), a parent-child/spousal exclusion that keeps the prior base ('BEX'), or a partial new-construction-only reassessment ('NC'). (2) DocDate (last recorded document date) falls within 3 years of the snapshot's own most recent observed DocDate (2019-12-31), i.e. on/after 2016-12-31. Data quirk: every DocDate in the entire 132k-parcel countywide feed tops out at 2019-12-31 regardless of ValReason, even though the service's edit metadata shows a late-2025 refresh -- the document-recording linkage in this particular feed appears to have stopped updating years ago even as assessed values keep getting refreshed. The recency cutoff is therefore anchored to the snapshot's own max DocDate rather than to today's date (which would find zero comps), so comps end up concentrated around 2018-2019 transfers. CORRECTION APPLIED: because essentially every comp is 2018-2019 vintage, each comp's raw $/sqft is appreciation-adjusted to 2025-equivalent using its own DocDate year against data/santabarbara-hpi.json (FRED series ATNHPIUS06083A, 'All-Transactions House Price Index for Santa Barbara County, CA') -- multiplying by hpi[2025]/hpi[comp_year], identical technique to how SF's 03_process_sfr.py adjusts its own older comps via data/sf-hpi.json. This is what brings the countywide estimates up to ~2025-equivalent market conditions instead of the ~2019-2020 conditions an unadjusted read of these comps would imply. For each parcel, the 7 nearest confirmed comps by straight-line lat/lon distance set the estimate: median $/sqft of those comps x the subject's own sqft. There is no neighborhood-tier fallback grouping (unlike SF) since this schema has no neighborhood label field and the assigned method for this county only calls for nearest-K comps; the comp pool is instead searched directly, countywide. Estimated market value is floored at the parcel's own current assessed value (LandValue+StrImpr+TradeFix+LivImpr): a below-assessed estimate is essentially always the comp model undershooting rather than a real declining-value home, same rationale as SF's script.",
+    "excluded_valreason_codes": {
+      "IF": "Inflation Factor -- ordinary ~2%/yr Prop 13 growth, the default/no-event case (65,257 of 78,337 SFR parcels)",
+      "BVT": "Base Value Transfer -- Prop 60/90/19-style transferred-in low base value, intentionally below market",
+      "AGE": "age-based (55+) base year transfer -- same as BVT, transferred base is not a market signal",
+      "BEX": "base year exclusion (e.g. parent-child/spousal) -- ownership changed but value was NOT reassessed",
+      "NC": "New Construction -- only the incremental new-construction value is reassessed, not the whole parcel",
+      "other": "V, INC, NVA, BV, NS, DRT, PT, CXL, NP, MA, blank -- none reliably indicate a fresh change-of-ownership market reset, and/or too rare to use with confidence"
+    },
+    "tax_assumptions": {
+      "current_general_rate_pct": 1.0,
+      "bond_rate_pct_used": 0.18,
+      "bond_rate_note": "Held at San Francisco's bond rate for cross-county consistency, per the shared methodology; a deliberate simplification, not Santa Barbara County's actual bond rate.",
+      "proposed_general_rate_pct": 0.7
+    },
+    "appreciation_adjustment": {
+      "source": "data/santabarbara-hpi.json (FRED ATNHPIUS06083A, Santa Barbara County All-Transactions HPI)",
+      "target_year": 2025,
+      "comp_docdate_year_range": "2017-2019",
+      "mean_market_value_shift_from_adjustment_pct": 60.0
+    },
+    "generated": "2026-07-31"
+  },
+  "counts": {
+    "total_sfr_parcels_fetched": 77592,
+    "recency_and_valreason_confirmed_comps": 3066,
+    "estimated_rows_written": 77592
+  },
+  "stats": {
+    "subsidy_vs_market_today": {
+      "p10": 2759,
+      "median": 6613,
+      "mean": 11170,
+      "p90": 24011,
+      "p99": 61286,
+      "min": 0,
+      "max": 260991
+    },
+    "under_reform": {
+      "would_pay_more": 74524,
+      "would_pay_less": 3068,
+      "pct_pay_more": 96.0,
+      "pct_pay_less": 4.0
+    }
+  }
+}
