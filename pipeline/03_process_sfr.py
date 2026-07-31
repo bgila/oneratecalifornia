@@ -14,16 +14,35 @@ value has to be inferred from the assessor roll itself. The approach:
    (e.g. Prop 19 parent-child/trust transfers, batch administrative
    recordings) that have a sale date but no real value reset, which a
    naive "has a recent sale date" filter would wrongly include.
-2. For each target home, the 7 nearest jump-confirmed comps by location
-   (same neighborhood if it has 12+, else citywide fallback) set the
-   estimate: median $/sqft of those comps x the subject's sqft.
+2. Comps are appreciation-adjusted to today's-equivalent price before use:
+   a comp from 2012 is scaled up by the FRED SF house price index's growth
+   from 2012 to 2025 (data/sf-hpi.json), so an older comp doesn't drag the
+   estimate down just because it's stale.
+3. For each target home, the 7 nearest jump-confirmed comps by location set
+   the estimate: median $/sqft of those comps x the subject's sqft. "By
+   location" means same neighborhood if it has 12+ comps of its own;
+   otherwise, comps are pooled from every neighborhood in the same price
+   quartile (ranked by each neighborhood's own comps' median $/sqft) rather
+   than the whole city -- a citywide fallback was pulling low-turnover,
+   high-value neighborhoods (Sea Cliff, Presidio Heights, etc.) toward the
+   city's much lower median. Neighborhoods with zero comps of their own
+   still fall back to the full city, since there's no way to rank them.
+4. Estimated market value is floored at the current assessed value: in
+   today's market a home's true value essentially never sits below what
+   Prop 13 has grown its assessment to, so an estimate below assessed value
+   is almost always a sign the comp model undershot rather than a real
+   declining-value home. This trades away accuracy for the rare legitimate
+   exception (e.g. some SoMa condos that have genuinely lost value since
+   purchase) in exchange for not showing an obviously-wrong "underwater"
+   result for the vastly more common case.
 
 Known weak point: still undershoots at the very top of the market (large/
 luxury homes), since nearest-neighbor $/sqft blends in typical nearby homes
 rather than modeling a price tier.
 
 Reads:  pipeline/tmp/sfr_snapshot_raw.json       (01_fetch_sfr_snapshot.py)
-        pipeline/tmp/sfr_history_2020_2025.json  (02_fetch_sfr_history.py)
+        pipeline/tmp/sfr_history_2010_2025.json  (02_fetch_sfr_history.py)
+        data/sf-hpi.json                         (13_fetch_hpi.py)
 Writes: pipeline/tmp/sf-citywide-sfr-full.csv     (full per-parcel estimate table)
         pipeline/tmp/sf-citywide-summary.json     (methodology + summary stats)
 """
@@ -41,13 +60,17 @@ import numpy as np
 PIPELINE_DIR = Path(__file__).resolve().parent
 TMP_DIR = PIPELINE_DIR / "tmp"
 RAW_SNAPSHOT = TMP_DIR / "sfr_snapshot_raw.json"
-HISTORY = TMP_DIR / "sfr_history_2020_2025.json"
+HISTORY = TMP_DIR / "sfr_history_2010_2025.json"
+HPI_PATH = PIPELINE_DIR.parent / "data" / "sf-hpi.json"
 OUT_CSV = TMP_DIR / "sf-citywide-sfr-full.csv"
 OUT_SUMMARY = TMP_DIR / "sf-citywide-summary.json"
 
 JUMP_THRESHOLD = 1.08
+HISTORY_START_YEAR = 2010
+CURRENT_YEAR = 2025
 K = 7
 MIN_COMPS_FOR_LOCAL_GROUP = 12
+NUM_PRICE_TIERS = 4  # quartiles, for the fallback pool when a neighborhood lacks its own comps
 GENERAL_RATE_CURRENT = 1.00
 BOND_RATE_SF = 0.18
 GENERAL_RATE_PROPOSED = 0.65
@@ -97,7 +120,8 @@ def load_parcels(raw_snapshot_path):
 
 
 def load_confirmed_comps(history_path):
-    """Detect jump-confirmed reassessment events per parcel across 2020-2025.
+    """Detect jump-confirmed reassessment events per parcel across the full
+    history window (HISTORY_START_YEAR-CURRENT_YEAR).
 
     Keeps the most recent confirmed jump per parcel as its comp price signal.
     """
@@ -116,7 +140,7 @@ def load_confirmed_comps(history_path):
     confirmed = {}  # parcel_number -> {"year": y, "total": assessed_total at year y}
     for pn, years in by_parcel_year.items():
         best = None
-        for y in range(2021, 2026):
+        for y in range(HISTORY_START_YEAR + 1, CURRENT_YEAR + 1):
             if y not in years or (y - 1) not in years:
                 continue
             prev, cur = years[y - 1]["total"], years[y]["total"]
@@ -159,21 +183,29 @@ def main():
     confirmed = load_confirmed_comps(HISTORY)
     print("jump-confirmed comps found:", len(confirmed), file=sys.stderr)
 
-    # attach comps (needs matching sqft from 2025 snapshot; assume sqft stable over time)
+    hpi = json.load(open(HPI_PATH))
+    hpi_current = hpi[str(CURRENT_YEAR)]
+
+    # attach comps (needs matching sqft from 2025 snapshot; assume sqft stable over time),
+    # appreciation-adjusting each comp's psf to today's-equivalent via the FRED index so an
+    # older comp (this window now reaches back to 2010) doesn't read as artificially cheap.
     all_comps = []
     for pn, info in confirmed.items():
         p = parcels.get(pn)
         if not p or p["sqft"] <= 200:
             continue
-        psf = info["total"] / p["sqft"]
-        if psf <= 0 or psf > 10000:  # sanity guard
+        raw_psf = info["total"] / p["sqft"]
+        if raw_psf <= 0 or raw_psf > 10000:  # sanity guard
             continue
+        comp_year = info["year"]
+        hpi_at_comp = hpi.get(str(comp_year), hpi_current)
+        adjusted_psf = raw_psf * (hpi_current / hpi_at_comp)
         all_comps.append({
             "parcel_number": pn,
             "neighborhood": p["neighborhood"],
             "lat": p["lat"], "lon": p["lon"],
-            "price_per_sqft": psf,
-            "comp_year": info["year"],
+            "price_per_sqft": adjusted_psf,
+            "comp_year": comp_year,
         })
     print("usable comps after join:", len(all_comps), file=sys.stderr)
 
@@ -184,6 +216,27 @@ def main():
     comps_by_nb = defaultdict(list)
     for c in all_comps:
         comps_by_nb[c["neighborhood"]].append(c)
+
+    # Rank neighborhoods into price quartiles using whatever comps they have (even if too
+    # few to estimate from directly) so the fallback for a comp-sparse neighborhood can stay
+    # within its own price tier instead of diluting into the whole city's median. A citywide
+    # fallback was the main reason low-turnover, high-value neighborhoods like Sea Cliff were
+    # coming out badly undervalued.
+    nb_tier_psf = {
+        nb: statistics.median(c["price_per_sqft"] for c in comps)
+        for nb, comps in comps_by_nb.items() if comps
+    }
+    ranked_nbs = sorted(nb_tier_psf, key=lambda nb: nb_tier_psf[nb])
+    tier_of_nb = {}
+    if ranked_nbs:
+        tier_size = math.ceil(len(ranked_nbs) / NUM_PRICE_TIERS)
+        for i, nb in enumerate(ranked_nbs):
+            tier_of_nb[nb] = min(i // tier_size, NUM_PRICE_TIERS - 1)
+    comps_by_tier = defaultdict(list)
+    for nb, comps in comps_by_nb.items():
+        tier = tier_of_nb.get(nb)
+        if tier is not None:
+            comps_by_tier[tier].extend(comps)
 
     all_comp_lat = np.array([c["lat"] for c in all_comps])
     all_comp_lon = np.array([c["lon"] for c in all_comps])
@@ -208,16 +261,21 @@ def main():
 
         for nb_name, members in by_nb.items():
             local_comps = comps_by_nb.get(nb_name, [])
-            use_local = len(local_comps) >= MIN_COMPS_FOR_LOCAL_GROUP
-            if use_local:
-                comp_lat = np.array([c["lat"] for c in local_comps])
-                comp_lon = np.array([c["lon"] for c in local_comps])
-                comp_psf = np.array([c["price_per_sqft"] for c in local_comps])
-                comp_parcel = np.array([c["parcel_number"] for c in local_comps])
-                source_label = "same_neighborhood"
+            tier_comps = comps_by_tier.get(tier_of_nb.get(nb_name))
+            if len(local_comps) >= MIN_COMPS_FOR_LOCAL_GROUP:
+                pool, source_label = local_comps, "same_neighborhood"
+            elif tier_comps and len(tier_comps) >= MIN_COMPS_FOR_LOCAL_GROUP:
+                pool, source_label = tier_comps, "same_price_tier"
+            else:
+                pool, source_label = None, "citywide_fallback"
+
+            if pool is not None:
+                comp_lat = np.array([c["lat"] for c in pool])
+                comp_lon = np.array([c["lon"] for c in pool])
+                comp_psf = np.array([c["price_per_sqft"] for c in pool])
+                comp_parcel = np.array([c["parcel_number"] for c in pool])
             else:
                 comp_lat, comp_lon, comp_psf, comp_parcel = all_comp_lat, all_comp_lon, all_comp_psf, all_comp_parcel
-                source_label = "citywide_fallback"
 
             batch_rows = []
             for p in members:
@@ -228,6 +286,14 @@ def main():
                     continue
                 med_psf, n_used = result
                 est_market_value = med_psf * p["sqft"]
+                # Floor market value at the current assessed value: in today's market,
+                # a home's true value essentially never sits below what Prop 13 has grown
+                # its assessment to, so a below-assessed estimate here is almost always a
+                # sign the comp-based model has undershot, not a real declining-value case.
+                # This trades away accuracy for the rare legitimate case (e.g. some SoMa
+                # condos that have genuinely lost value) in exchange for not showing an
+                # obviously-wrong negative subsidy for the vastly more common case.
+                est_market_value = max(est_market_value, p["assessed_total"])
                 current_tax = p["assessed_total"] * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100
                 market_tax_current_law = est_market_value * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100
                 reform_tax = est_market_value * (GENERAL_RATE_PROPOSED + BOND_RATE_SF) / 100
@@ -263,16 +329,28 @@ def main():
             "source_url": "https://data.sfgov.org/Housing-and-Buildings/Assessor-Historical-Secured-Property-Tax-Rolls/wv5m-vpq2",
             "scope": "Citywide, Single Family Residential (includes individually-deeded condos)",
             "market_value_estimation": (
-                f"Comps are identified by detecting actual reassessment events in 2020-2025 multi-year assessor "
-                "history, not just a recorded sale date: Prop 13 caps the ordinary annual inflation adjustment at "
-                "~2%/yr, so any parcel whose total assessed value jumps >=8% year-over-year, with a recorded sale "
-                "date within a year of that jump (allowing for the ~1yr lag between a sale and its reassessment "
-                "appearing on the roll), is treated as a confirmed market reset -- its post-jump assessed value is "
-                "used as a real price-per-sqft signal. This catches non-arms-length transfers (e.g. Prop 19 parent-"
-                "child/trust transfers, or batch administrative recordings) that have a sale date but no real value "
-                "reset, which a naive 'has a recent sale date' filter would wrongly include. "
-                f"For each target home, the {K} nearest confirmed comps by location (same neighborhood if it has "
-                f"{MIN_COMPS_FOR_LOCAL_GROUP}+, else citywide) set the estimate: median $/sqft x subject sqft. "
+                f"Comps are identified by detecting actual reassessment events in {HISTORY_START_YEAR}-{CURRENT_YEAR} "
+                "multi-year assessor history, not just a recorded sale date: Prop 13 caps the ordinary annual "
+                "inflation adjustment at ~2%/yr, so any parcel whose total assessed value jumps >=8% year-over-year, "
+                "with a recorded sale date within a year of that jump (allowing for the ~1yr lag between a sale and "
+                "its reassessment appearing on the roll), is treated as a confirmed market reset -- its post-jump "
+                "assessed value is used as a real price-per-sqft signal, appreciation-adjusted to today's-equivalent "
+                "via the FRED SF house price index so an older comp doesn't read as artificially cheap. This catches "
+                "non-arms-length transfers (e.g. Prop 19 parent-child/trust transfers, or batch administrative "
+                "recordings) that have a sale date but no real value reset, which a naive 'has a recent sale date' "
+                "filter would wrongly include. "
+                f"For each target home, the {K} nearest confirmed comps by location set the estimate: median $/sqft "
+                f"x subject sqft. 'By location' means same neighborhood if it has {MIN_COMPS_FOR_LOCAL_GROUP}+ comps "
+                "of its own; otherwise, comps are pooled from every neighborhood in the same price quartile (ranked "
+                "by each neighborhood's own comps) rather than the whole city, so a comp-sparse but expensive "
+                "neighborhood isn't dragged toward the citywide median. Neighborhoods with zero comps of their own "
+                "still fall back to citywide, since there's no way to rank them. Estimated market value is then "
+                "floored at the home's current assessed value: in today's market a home's true value essentially "
+                "never sits below what Prop 13 has grown its assessment to, so an estimate below assessed value is "
+                "almost always a sign the comp model undershot rather than a real declining-value home. This trades "
+                "away accuracy for the rare legitimate exception (e.g. some SoMa condos that have genuinely lost "
+                "value since purchase) in exchange for not showing an obviously-wrong 'underwater' result for the "
+                "vastly more common case. "
                 "Known weak point: still undershoots at the very top of the market (large/luxury homes), since "
                 "nearest-neighbor $/sqft blends in typical nearby homes rather than modeling a price tier."
             ),

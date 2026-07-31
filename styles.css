@@ -216,10 +216,10 @@
   .hero-chart-tooltip strong { font-family: "League Spartan", var(--font-sans); font-size: 0.8rem; }
   .hero-chart-axis, .hero-chart-gridline { stroke: var(--border); stroke-width: 1; }
   .hero-chart-gridline { stroke-dasharray: 2 3; }
-  .hero-chart-axislabel { font-size: 8px; fill: var(--ink-soft); font-family: var(--font-sans); }
+  .hero-chart-axislabel { font-size: 11px; fill: var(--ink-soft); font-family: var(--font-sans); }
   .hero-chart-line { fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
-  .hero-chart-actual { stroke: var(--up); }
-  .hero-chart-market { stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .hero-chart-actual { stroke: #b3261e; }
+  .hero-chart-market { stroke: #2f6a9e; stroke-width: 1.75; stroke-dasharray: 4 3; }
   .hero-chart-proposed { stroke: var(--primary); }
   .hero-chart-legend {
     display: flex;
@@ -231,8 +231,8 @@
   }
   .hero-chart-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
   .hero-chart-swatch { width: 0.8rem; height: 0.15rem; border-radius: 2px; display: inline-block; }
-  .hero-chart-swatch-actual { background: var(--up); }
-  .hero-chart-swatch-market { background: var(--ink-soft); }
+  .hero-chart-swatch-actual { background: #b3261e; }
+  .hero-chart-swatch-market { background: #2f6a9e; }
   .hero-chart-swatch-proposed { background: var(--primary); }
   .hero-chart-caption { margin-top: 0.6rem; font-size: 0.74rem; color: var(--ink-soft); }
   .hero p.lede {

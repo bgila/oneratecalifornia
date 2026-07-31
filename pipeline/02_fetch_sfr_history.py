@@ -1,5 +1,5 @@
 """
-Fetch multi-year (2020-2025) assessed-value history for San Francisco
+Fetch multi-year (2010-2025) assessed-value history for San Francisco
 single-family residential parcels from the DataSF Socrata API.
 
 This is used by 03_process_sfr.py to detect "jump-confirmed comps": parcels
@@ -7,8 +7,16 @@ whose assessed value jumped sharply (more than Prop 13's ~2%/yr inflation
 cap allows) in a year they also show a recorded sale, which is a strong
 signal of an actual arms-length sale at market value.
 
+Widened from a 2020-2025 window to 2010-2025: low-turnover, high-value
+neighborhoods (Sea Cliff, Presidio Heights, etc.) often don't have a single
+qualifying sale in any 6-year window, which was forcing them into a citywide
+comp fallback that badly undervalued them. A 16-year window gives those
+neighborhoods a real chance at having their own comps; 03_process_sfr.py
+appreciation-adjusts older comps to today's-equivalent price via the FRED
+house price index rather than using their stale nominal value directly.
+
 Reads:  nothing (hits the network)
-Writes: pipeline/tmp/sfr_history_2020_2025.json
+Writes: pipeline/tmp/sfr_history_2010_2025.json
 
 No API key required -- same open DataSF endpoint as 01_fetch_sfr_snapshot.py,
 just queried once per year instead of once for the current roll.
@@ -22,7 +30,7 @@ from pathlib import Path
 
 PIPELINE_DIR = Path(__file__).resolve().parent
 TMP_DIR = PIPELINE_DIR / "tmp"
-OUT_PATH = TMP_DIR / "sfr_history_2020_2025.json"
+OUT_PATH = TMP_DIR / "sfr_history_2010_2025.json"
 
 BASE_URL = "https://data.sfgov.org/resource/wv5m-vpq2.json"
 FIELDS = (
@@ -30,7 +38,7 @@ FIELDS = (
     "assessed_fixtures_value,property_area,current_sales_date"
 )
 USE_DEFINITION = "Single Family Residential"
-YEARS = range(2020, 2026)
+YEARS = range(2010, 2026)
 PAGE_SIZE = 50000
 
 

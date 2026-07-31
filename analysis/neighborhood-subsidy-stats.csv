@@ -1,93 +1,93 @@
 neighborhood,n_homes,avg_pct_subsidy,avg_dollar_subsidy_per_home
-St. Francis Wood,414,45.5,21203
-Forest Hill,889,47.46,16132
-Balboa Terrace,526,45.66,14538
-Ingleside Terrace,445,49.8,13949
-West Portal,1047,54.55,13771
-Monterey Heights,410,41.05,13534
-Sherwood Forest,385,45.41,13444
-Forest Hill Extension,910,45.89,11362
-Golden Gate Heights,2203,49.76,10965
-Lakeside,434,45.14,10774
-Merced Manor,1112,48.93,10644
-Pine Lake Park,1757,52.58,10596
-Inner Parkside,2444,53.83,10047
-Parkside,3706,54.81,10013
-Presidio Heights,2834,41.03,9856
-Lake Shore,724,53.02,9741
-Central Sunset,6630,55.05,9654
-Westwood Highlands,853,47.12,9506
-Miraloma Park,1483,46.94,9466
-Mount Davidson Manor,911,48.1,9460
-Midtown Terrace,891,46.86,9292
-Outer Parkside,4715,56.26,9279
-Merced Heights,1431,52.64,9129
-Westwood Park,722,47.41,8938
-Sunnyside,2246,48.5,8722
-Clarendon Heights,1299,40.8,8709
-Outer Sunset,6366,53.76,8369
-Sea Cliff,3366,48.47,7948
-Glen Park,4520,47.21,7942
-Outer Richmond,6152,50.38,7584
-Cow Hollow,5413,46.88,7357
-Jordan Park/Laurel Heights,3091,49.91,7336
-Portola,3810,49.24,7327
-Oceanview,1678,48.78,7326
-Lake Street,3933,51.77,7241
-Pacific Heights,6586,46.17,7158
-Inner Sunset,7143,54.27,7150
-Russian Hill,9310,49.92,7140
-Excelsior,4434,49.56,7095
-Croker Amazon,3931,50.68,7031
-Little Hollywood,967,50.08,6937
-Bernal Heights,8920,45.77,6931
-Diamond Heights,2145,37.65,6890
-Central Richmond,7470,54.35,6864
-Outer Mission,2820,49.15,6761
-Marina,7113,50.73,6689
-Mission Terrace,3188,47.9,6666
-Inner Richmond,7237,51.85,6609
-Cole Valley/Parnassus Heights,4269,49.82,6534
-Noe Valley,8060,45.78,6506
-Visitacion Valley,3553,50.37,6479
-Eureka Valley/Dolores Heights,4404,39.14,6475
-Forest Knolls,1451,49.31,6429
-Lone Mountain,3238,52.05,6272
-Ingleside,2139,44.31,6242
-Ingleside Heights,1851,45.17,6175
-North Beach,4389,56.9,6158
-Silver Terrace,2923,48.9,6094
-Buena Vista Park/Ashbury Heights,1731,38.72,6027
-Corona Heights,2376,39.64,5926
-Stonestown,1018,51.42,5675
-Lower Pacific Heights,4173,48.4,5641
-Bayview Heights,2098,45.03,5539
-Bayview,3214,47.6,5319
-Potrero Hill,5678,34.98,5257
-Western Addition,1755,65.57,5196
-Haight Ashbury,3407,44.98,5139
-Twin Peaks,3563,43.21,5038
-Anza Vista,4311,43.88,4924
-Duboce Triangle,4428,38.97,4755
-North Panhandle,3107,44.32,4678
-Nob Hill,10372,49.32,4630
-Telegraph Hill,3639,46.74,4415
-Alamo Square,4769,43.4,4227
-Downtown,9529,50.84,4021
-Van Ness/Civic Center,11324,39.82,3816
-Inner Mission,12154,38.22,3777
-Mission Dolores,9391,42.61,3675
-North Waterfront,1020,30.43,3527
-Financial District North,1489,36.66,3070
-Union Square,3680,40.87,2949
-Hayes Valley,8024,26.04,2352
-Central Waterfront/Dogpatch,3050,13.92,2334
-Candlestick Point,596,19.05,2265
-Mission Bay,5845,12.62,1639
-South Beach,6206,15.46,1581
-South of Market,7167,6.6,1198
-Tenderloin,9431,17.62,1186
-Hunters Point,798,10.14,1136
-Yerba Buena,4239,7.06,704
-Financial District South,5538,-12.13,-103
-Treasure Isl./Yerba Buena Isl.,141,-1.7,-868
+St. Francis Wood,414,44.81,19273
+Presidio Heights,2834,46.11,15544
+Forest Hill,889,47.54,14964
+Monterey Heights,410,43.24,13908
+Balboa Terrace,526,45.68,13519
+West Portal,1047,55.1,13372
+Sherwood Forest,385,46.37,13007
+Forest Hill Extension,910,48.78,11484
+Ingleside Terrace,445,46.63,11243
+Lakeside,434,46.49,10563
+Merced Manor,1112,48.77,9917
+Golden Gate Heights,2203,49.73,9841
+Clarendon Heights,1299,43.07,9452
+Miraloma Park,1483,48.4,9304
+Sea Cliff,3366,50.42,9255
+Lake Shore,724,52.57,9099
+Inner Parkside,2444,52.61,9042
+Westwood Highlands,853,47.59,9041
+Westwood Park,722,49.08,9034
+Cow Hollow,5413,49.55,9019
+Pine Lake Park,1757,49.83,8954
+Pacific Heights,6586,49.27,8798
+Midtown Terrace,891,46.72,8775
+Mount Davidson Manor,911,48.04,8742
+Parkside,3706,53.1,8739
+Sunnyside,2246,49.74,8435
+Glen Park,4520,49.97,8418
+Central Sunset,6630,52.97,8299
+Russian Hill,9310,53.17,8176
+Outer Parkside,4715,54.46,8067
+Merced Heights,1431,51.03,7891
+Jordan Park/Laurel Heights,3091,51.6,7814
+Eureka Valley/Dolores Heights,4404,42.78,7767
+Lake Street,3933,52.58,7453
+Marina,7113,52.51,7423
+Diamond Heights,2145,40.68,7372
+Outer Sunset,6366,52.16,7280
+Bernal Heights,8920,47.98,7264
+Noe Valley,8060,48.15,7157
+Outer Richmond,6152,50.02,7054
+Cole Valley/Parnassus Heights,4269,51.64,7052
+Buena Vista Park/Ashbury Heights,1731,41.95,6998
+Inner Sunset,7143,54.4,6987
+Central Richmond,7470,54.76,6839
+Inner Richmond,7237,52.34,6640
+Portola,3810,48.46,6608
+North Beach,4389,58.65,6575
+Mission Terrace,3188,48.83,6519
+Corona Heights,2376,42.45,6486
+Lone Mountain,3238,52.85,6468
+Lower Pacific Heights,4173,50.95,6465
+Forest Knolls,1451,49.64,6383
+Excelsior,4434,48.47,6267
+Little Hollywood,967,48.5,6079
+Croker Amazon,3931,48.06,5935
+Stonestown,1018,52.85,5926
+Potrero Hill,5678,38.57,5923
+Outer Mission,2820,47.24,5831
+Ingleside,2139,44.7,5790
+Oceanview,1678,44.42,5656
+Visitacion Valley,3553,48.32,5546
+Haight Ashbury,3407,46.14,5449
+Twin Peaks,3563,45.24,5423
+Anza Vista,4311,46.06,5340
+Silver Terrace,2923,47.05,5283
+Western Addition,1755,65.9,5209
+Duboce Triangle,4428,40.65,5168
+Ingleside Heights,1851,42.17,5123
+Nob Hill,10372,51.15,5114
+North Panhandle,3107,46.09,5072
+Bayview Heights,2098,44.75,4962
+Telegraph Hill,3639,48.41,4850
+North Waterfront,1020,39.36,4795
+Bayview,3214,47.03,4788
+Union Square,3680,49.37,4623
+Financial District North,1489,42.37,4598
+Alamo Square,4769,44.9,4554
+Van Ness/ Civic Center,11324,44.1,4314
+Inner Mission,12154,40.31,4205
+Downtown,9529,51.83,4205
+Mission Dolores,9391,44.84,4152
+Central Waterfront/Dogpatch,3050,19.04,3167
+South Beach,6206,22.54,3007
+Hayes Valley,8024,30.22,2881
+Mission Bay,5845,20.41,2818
+Yerba Buena,4239,15.43,2568
+Financial District South,5538,2.19,2428
+Hunters Point,798,25.46,2337
+Candlestick Point,596,18.98,2129
+South of Market,7167,10.69,1773
+Treasure Isl./Yerba Buena Isl.,141,10.26,1674
+Tenderloin,9431,18.95,1292

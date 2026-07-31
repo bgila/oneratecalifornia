@@ -73,20 +73,6 @@
           <a href="#calculator" class="btn btn-primary">See what it means for your bill</a>
           <a href="#proposal" class="btn btn-secondary">How it works</a>
         </div>
-        <div class="stat-line">
-          <div>
-            <div class="stat-num">0.70%</div>
-            <div class="stat-label">proposed general rate, down from 1.00%</div>
-          </div>
-          <div>
-            <div class="stat-num">$0</div>
-            <div class="stat-label">net new statewide revenue (by design)</div>
-          </div>
-          <div>
-            <div class="stat-num">1</div>
-            <div class="stat-label">assessment rule for every property owner</div>
-          </div>
-        </div>
       </div>
 
       <div class="hero-chart-card">
@@ -221,11 +207,13 @@
         </p>
         <p class="faq-answer">
           Checked against homes that themselves sold in 2024–2025 (so their true value is essentially known),
-          this estimate lands within 20% of the real value about 64% of the time, with a median error of about
-          14%. It's least reliable at the very top of the market, where a simple nearby-comps approach
-          undershoots distinctive, high-end properties. Treat every number here as a rough estimate, not an
-          appraisal — county bond rates are held at San Francisco's ~0.18% for simplicity, and the same general
-          tax rates used in the calculator above (1.00% today, 0.70% proposed) are applied throughout.
+          this estimate lands within 20% of the real value about 71% of the time, with a median error of about
+          6%. It's least reliable at the very top of the market, where a simple nearby-comps approach
+          undershoots distinctive, high-end properties — for that reason, an estimate is never allowed to fall
+          below a home's own current assessed value, which otherwise showed up as an obviously-wrong "underwater"
+          result for expensive homes with few comparable local sales. Treat every number here as a rough estimate,
+          not an appraisal — county bond rates are held at San Francisco's ~0.18% for simplicity, and the same
+          general tax rates used in the calculator above (1.00% today, 0.70% proposed) are applied throughout.
         </p>
         <p class="faq-answer">
           Multi-family buildings (larger, square markers) use a simpler, rougher method, since actual

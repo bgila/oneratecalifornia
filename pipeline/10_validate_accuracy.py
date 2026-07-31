@@ -8,7 +8,7 @@ market value is essentially known) and compare that true value against the
 model's own est_market_value for that same parcel. This is the source of
 the "~14% median error" figure quoted in the site's methodology section.
 
-Reads:  pipeline/tmp/sfr_history_2020_2025.json  (02_fetch_sfr_history.py)
+Reads:  pipeline/tmp/sfr_history_2010_2025.json  (02_fetch_sfr_history.py)
         pipeline/tmp/sf-citywide-sfr-full.csv    (03_process_sfr.py)
 Writes: nothing -- prints the accuracy report to stdout
 """
@@ -20,7 +20,7 @@ from pathlib import Path
 
 PIPELINE_DIR = Path(__file__).resolve().parent
 TMP_DIR = PIPELINE_DIR / "tmp"
-HISTORY = TMP_DIR / "sfr_history_2020_2025.json"
+HISTORY = TMP_DIR / "sfr_history_2010_2025.json"
 SFR_FULL_CSV = TMP_DIR / "sf-citywide-sfr-full.csv"
 
 JUMP_THRESHOLD = 1.08
