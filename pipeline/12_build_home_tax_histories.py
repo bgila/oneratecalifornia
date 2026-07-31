@@ -1,12 +1,13 @@
 """
 Build a small pool of San Francisco single-family homes and condos for the
-hero section's "Prop 13 over time" chart -- a plain random sample, no
+hero section's "property tax over time" chart -- a plain random sample, no
 cherry-picking. (DataSF's use_definition="Single Family Residential" bucket
 already includes condos, distinguished only by property_class_code_definition
-e.g. "Condominium" -- no separate query needed.) The only real constraint is
-that the home has to have existed for the full chart window (1975-2025, see
-hero-chart.js), so it's filtered to built-before-1976; beyond that every
-qualifying home has an equal chance of being picked.
+e.g. "Condominium" -- no separate query needed.) Filtered to built-before-
+1976, a legacy constraint from when the chart covered 1975-2025; the chart
+now only covers 2007-2025 (see hero-chart.js and pipeline/14), the actual
+real-data window, so this filter is stricter than necessary today but is
+kept so the existing sample doesn't churn.
 
 Each home also carries its real recorded sale year, if DataSF has one on
 file (that field only goes back to ~1983 -- null means either no sale
@@ -14,15 +15,14 @@ since before digitized records, or a non-arms-length transfer like
 inheritance that doesn't always get a date recorded the same way). The
 client-side reconstruction (hero-chart.js) uses that sale year, when
 present, as the home's own reset point, so a home that genuinely reset
-recently just shows a shorter "actual tax paid" segment instead of
-pretending every home has been frozen the full 50 years.
+recently just shows a shorter "actual tax paid" segment.
 
 For each home we only keep the handful of raw facts needed to reconstruct
-its tax trajectory client-side: current assessed value, sqft, address,
-lat/lon, year built, sale year. The reconstruction itself (Prop 13's 2%/yr
-cap run backward from the home's own reset point, scaled against the FRED
-house price index) happens in the browser -- see 13_fetch_hpi.py for the
-other half of that data.
+its tax trajectory client-side: parcel number (to fetch real per-year
+history in pipeline/14), current assessed value, sqft, address, lat/lon,
+year built, sale year. Real per-year assessed values for 2007-2025 come
+from pipeline/14; the "market value, today's rate" line is still a FRED
+house-price-index estimate computed in the browser -- see 13_fetch_hpi.py.
 
 Reads:  nothing (hits DataSF network)
 Writes: data/home-tax-histories.json
@@ -126,6 +126,7 @@ def main():
             continue
         year_built = r.get("year_property_built")
         homes.append({
+            "parcel_number": r.get("parcel_number"),
             "addr": addr,
             "lat": round(lat, 5),
             "lon": round(lon, 5),

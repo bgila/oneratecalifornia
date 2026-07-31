@@ -8,10 +8,9 @@
   var tooltipEl = document.getElementById('heroChartTooltip');
   if (!addrEl || !svgWrap || !outerEl || !refreshBtn || !tooltipEl) return;
 
-  // 1975 is FRED's earliest available year for the SF house price index.
-  // Homes in home-tax-histories.json are a random sample of pre-1976-built
-  // SFR parcels -- see pipeline/12 and 13.
-  var START_YEAR = 1975;
+  // 2007 is as far back as DataSF's digitized assessor rolls go (see
+  // pipeline/14) -- the chart only covers real data, no pre-2007 estimate.
+  var START_YEAR = 2007;
   var END_YEAR = 2025;
   var GENERAL_RATE_CURRENT = 1.00;
   var BOND_RATE_SF = 0.18;
@@ -27,39 +26,58 @@
     return '$' + Math.round(v);
   }
 
-  // Reconstructs a home's assessed-value (and thus tax) trajectory from
-  // Prop 13's rules: assessed value can rise at most 2%/yr from a reset
-  // year, so today's assessed value implies a specific value at that reset.
-  // The reset year is the home's own recorded sale year if it has one
-  // (so a home that genuinely reset in, say, 1996 only shows 30 years of
-  // "actual tax paid" data, not a fabricated 50), or 1975 -- FRED's and
-  // this chart's earliest year -- if it doesn't. All series are null before
-  // the reset year: this owner didn't own the home yet, so neither their
-  // actual tax nor a hypothetical market-rate tax means anything before then.
+  // Uses home.history (see pipeline/14) directly -- the real per-year assessed
+  // value from DataSF's actual digitized rolls, 2007-2025, so it shows
+  // whatever really happened (a reset that current_sales_date's single
+  // "most recent sale" field doesn't capture, a Prop 8 decline-in-value
+  // adjustment, etc.), not a reconstructed theoretical curve. No pre-2007
+  // estimate: that data doesn't exist, so the chart just doesn't claim it.
+  // The reset year is the home's own recorded sale year if it has one and
+  // it falls in this window (so a home that reset in, say, 2016 only shows
+  // "actual tax paid" from 2016 on), or 2007 if it doesn't. All series are
+  // null before the reset year: this owner didn't own the home yet, so
+  // neither their actual tax nor a hypothetical market-rate tax means
+  // anything before then.
   function computeSeries(home) {
     var years = [];
     for (var y = START_YEAR; y <= END_YEAR; y++) years.push(y);
     var resetYear = Math.max(START_YEAR, home.sale_year || START_YEAR);
-    var base = home.assessed / Math.pow(1.02, END_YEAR - resetYear);
+    var history = home.history || {};
+
+    // base/hpiReset anchor the "market value, today's rate" line (still a
+    // FRED-index estimate -- there's no bulk sale-price data to draw it from
+    // directly). Anchored on the real assessed value at resetYear when
+    // available, else the current snapshot.
+    var anchorVal = history[String(resetYear)];
+    var anchorYear = resetYear;
+    if (anchorVal == null) { anchorYear = END_YEAR; anchorVal = home.assessed; }
+    var base = anchorVal / Math.pow(1.02, anchorYear - resetYear);
     var hpiReset = hpi[String(resetYear)];
+
     var assessedVal = [], marketVal = [], actual = [], marketNow = [], proposed = [];
+    var lastReal = null;
     years.forEach(function (y) {
-      if (y >= resetYear) {
-        var hpiY = hpi[String(y)] || hpiReset;
-        var marketY = base * (hpiY / hpiReset);
-        var assessedY = base * Math.pow(1.02, y - resetYear);
-        assessedVal.push(assessedY);
-        marketVal.push(marketY);
-        actual.push(assessedY * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100);
-        marketNow.push(marketY * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100);
-        proposed.push(marketY * (GENERAL_RATE_PROPOSED + BOND_RATE_SF) / 100);
-      } else {
-        assessedVal.push(null);
-        marketVal.push(null);
-        actual.push(null);
-        marketNow.push(null);
-        proposed.push(null);
+      if (y < resetYear) {
+        assessedVal.push(null); marketVal.push(null);
+        actual.push(null); marketNow.push(null); proposed.push(null);
+        return;
       }
+      var assessedY;
+      if (history[String(y)] != null) {
+        assessedY = history[String(y)];
+        lastReal = assessedY;
+      } else if (lastReal != null) {
+        assessedY = lastReal; // small gap in real data -- carry the last known value forward
+      } else {
+        assessedY = base * Math.pow(1.02, y - resetYear); // gap with nothing yet to carry forward
+      }
+      var hpiY = hpi[String(y)] || hpiReset;
+      var marketY = base * (hpiY / hpiReset);
+      assessedVal.push(assessedY);
+      marketVal.push(marketY);
+      actual.push(assessedY * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100);
+      marketNow.push(marketY * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100);
+      proposed.push(marketY * (GENERAL_RATE_PROPOSED + BOND_RATE_SF) / 100);
     });
     return {
       years: years, resetYear: resetYear,
