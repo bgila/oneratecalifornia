@@ -42,15 +42,20 @@
     for (var y = START_YEAR; y <= END_YEAR; y++) years.push(y);
     var history = home.history || {};
 
-    // base/hpiAnchor anchor the "market value, today's rate" line (still a
-    // FRED-index estimate -- there's no bulk sale-price data to draw it from
-    // directly). Anchored on the earliest real assessed value on file for
-    // this parcel, or the current snapshot if history is empty.
-    var anchorVal = history[String(START_YEAR)];
-    var anchorYear = START_YEAR;
-    if (anchorVal == null) { anchorYear = END_YEAR; anchorVal = home.assessed; }
-    var base = anchorVal / Math.pow(1.02, anchorYear - START_YEAR);
-    var hpiAnchor = hpi[String(anchorYear)];
+    // The "market value, today's rate" line is anchored on today's own
+    // comps-based market-value estimate (pipeline/15, the same nearest-comps
+    // model behind the "Individual homes" map) and projected BACKWARD via
+    // the FRED house price index ratio. Anchoring on a historical assessed
+    // value instead (as this used to) doesn't work: for a long-held home,
+    // that value is exactly what Prop 13 suppresses below true market value,
+    // so scaling it forward just propagates the suppression into a line
+    // that's supposed to represent the market, not the tax basis.
+    var todayMarket = home.today_market_value != null ? home.today_market_value : home.assessed;
+    var hpiToday = hpi[String(END_YEAR)];
+    // Separate fallback anchor for filling gaps in the real assessed-value
+    // history (unrelated to market value): projects from the current
+    // snapshot backward at Prop 13's 2%/yr cap.
+    var assessedBase = home.assessed / Math.pow(1.02, END_YEAR - START_YEAR);
 
     var assessedVal = [], marketVal = [], actual = [], marketNow = [], proposed = [];
     var lastReal = null;
@@ -62,10 +67,10 @@
       } else if (lastReal != null) {
         assessedY = lastReal; // small gap in real data -- carry the last known value forward
       } else {
-        assessedY = base * Math.pow(1.02, y - START_YEAR); // gap with nothing yet to carry forward
+        assessedY = assessedBase * Math.pow(1.02, y - START_YEAR); // gap with nothing yet to carry forward
       }
-      var hpiY = hpi[String(y)] || hpiAnchor;
-      var marketY = anchorVal * (hpiY / hpiAnchor);
+      var hpiY = hpi[String(y)] || hpiToday;
+      var marketY = todayMarket * (hpiY / hpiToday);
       assessedVal.push(assessedY);
       marketVal.push(marketY);
       actual.push(assessedY * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100);
