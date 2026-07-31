@@ -202,8 +202,8 @@
     position: absolute;
     top: 4px;
     transform: translateX(-50%);
-    background: var(--primary-dark);
-    color: #fff;
+    background: #eeece4;
+    color: var(--ink);
     padding: 0.4rem 0.6rem;
     border-radius: 6px;
     font-size: 0.72rem;
@@ -214,6 +214,9 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   }
   .hero-chart-tooltip strong { font-family: "League Spartan", var(--font-sans); font-size: 0.8rem; }
+  .hero-chart-tooltip .tt-actual { color: #b3261e; }
+  .hero-chart-tooltip .tt-market { color: #2f6a9e; }
+  .hero-chart-tooltip .tt-proposed { color: var(--primary); }
   .hero-chart-axis, .hero-chart-gridline { stroke: var(--border); stroke-width: 1; }
   .hero-chart-gridline { stroke-dasharray: 2 3; }
   .hero-chart-axislabel { font-size: 11px; fill: var(--ink-soft); font-family: var(--font-sans); }

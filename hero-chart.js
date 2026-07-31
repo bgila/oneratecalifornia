@@ -151,10 +151,10 @@
     } else {
       tooltipEl.innerHTML =
         '<strong>' + year + '</strong>' +
-        '<div>Assessed value: ' + fmtUSD0.format(assessed) + '</div>' +
-        '<div>Est. market value: ' + fmtUSD0.format(market) + '</div>' +
-        '<div>Prop tax paid: ' + fmtUSD0.format(taxPaid) + '</div>' +
-        '<div>Prop tax under this reform: ' + fmtUSD0.format(taxProposed) + '</div>';
+        '<div class="tt-actual">Assessed value: ' + fmtUSD0.format(assessed) + '</div>' +
+        '<div class="tt-market">Est. market value: ' + fmtUSD0.format(market) + '</div>' +
+        '<div class="tt-actual">Prop tax paid: ' + fmtUSD0.format(taxPaid) + '</div>' +
+        '<div class="tt-proposed">Prop tax under this reform: ' + fmtUSD0.format(taxProposed) + '</div>';
     }
     tooltipEl.hidden = false;
 
