@@ -813,9 +813,17 @@
       margin-left: calc(50% - 37.5vw);
       margin-right: calc(50% - 37.5vw);
     }
-    .sfmap-wrap, .map-embed-wrap {
+    .sfmap-wrap {
       width: 100%;
       height: max(560px, 70vh);
+    }
+    /* Height stays fixed (not matched to .sfmap-wrap) -- the crop trick below that
+       hides the Tax Fairness Project's own header/legend/text is calibrated for a
+       specific height; growing it just reveals more of their page underneath the
+       map instead of more map. */
+    .map-embed-wrap {
+      width: 100%;
+      height: 640px;
     }
   }
 
