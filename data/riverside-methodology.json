@@ -2,7 +2,7 @@
   "methodology": {
     "source_assessed_values": "Riverside County ArcGIS OpenData 'Assessor' MapServer (gis.countyofriverside.us/arcgis_mapping/rest/services/OpenData/Assessor/MapServer), joining PARCELS_CREST (geometry/address/class code), CREST_PROPERTY_CHAR (living area), and CREST_TAXYEAR (current LAND+STRUCTURES+LIVING_IMPROVEMENTS) by parcel PIN/APN. Current assessment roll is tax year 2027 (FY2026-2027).",
     "source_url": "https://gis.countyofriverside.us/arcgis_mapping/rest/services/OpenData/Assessor/MapServer",
-    "scope": "Single Family Dwelling class code only (CLASS_CODE='Single Family Dwelling' in PARCELS_CREST), 580109 parcels countywide. Rather than fetch and join all of those across 4 rate-limited tables, a bounded systematic sample was taken: every 5th parcel in APN order (116022 requested, 115680 usable after joins/filters). APN order in Riverside's system runs by assessment map book/page, which is itself geographically organized across the whole county, so a fixed-stride sample avoids the geographic bias a contiguous first-N slice would have.",
+    "scope": "Single Family Dwelling class code only (CLASS_CODE='Single Family Dwelling' in PARCELS_CREST), 580109 parcels countywide -- full county coverage, fetched and joined across 3 rate-limited tables (580109 targeted, 578329 usable after joins/filters; the small gap is parcels missing geometry, living area, or assessed value in one of the source tables). An earlier version of this pipeline covered only a systematic 1-in-5 sample (~116,000 parcels) for tractability; this run fetches the entire Single Family Dwelling universe.",
     "market_value_estimation": "There is no public bulk sale-price dataset for Riverside real estate, so market value is inferred from the assessor roll itself, the same general approach as San Francisco -- but the specific comp-detection signal had to be substituted because two of SF's inputs don't exist here. Live queries against every field in CREST_GENERAL, CREST_PROPERTY_CHAR, CREST_RECORDED_BOOK, CREST_TAXYEAR, and PARCELS_CREST confirmed there is no sale-date or recording-date field anywhere in this schema. And contrary to preliminary scouting, CREST_TAXYEAR does not hold multi-year history either -- a live query confirmed it holds only the single current tax year (2027) for all ~1.01M rows, so there is no year-over-year series to compute an 8%-jump signal from at all. Substitute signal: PRIME_BASE_YEAR (CREST_GENERAL) is the county's own recorded year in which a parcel's current Prop 13 base-year value was established -- i.e. the year of its last change-of-ownership or completed new-construction reassessment. Parcels with PRIME_BASE_YEAR in 2017-2026 (the 10 most recent years observed) are treated as 'recent-reset comps'. Each comp's current assessed total (LAND+STRUCTURES+LIVING_IMPROVEMENTS) / sqft is appreciation-adjusted to 2025-equivalent price via data/riverside-hpi.json (FRED series ATNHPIUS06065A, 'All-Transactions House Price Index for Riverside County, CA', 1975-2025), multiplying by hpi[2025]/hpi[base_year] -- the same logic 03_process_sfr.py applies to SF comps via data/sf-hpi.json. This corrects for the gap between Prop 13's ~2%/yr inflation cap (what the un-adjusted assessed value actually grew by since reset) and real market appreciation (typically much higher), which is why the comp window could be widened from an initial narrow 3-year window (2024-2026) out to 10 years: with HPI correction in place there's no longer a reason to exclude an older reset-year comp just to avoid uncorrected Prop-13-drift error. (An earlier version of this pipeline used no adjustment and the narrow 3-year window instead, because a live FRED fetch attempted from the original development environment repeatedly timed out; that turned out to be an environment-specific network restriction, not FRED being unreachable, and a working riverside-hpi.json was supplied afterward.) IMPORTANT CAVEAT (assigned methodology, confirmed unavoidable): with no sale-date field to cross-check against, a PRIME_BASE_YEAR reset from a non-arms-length event -- a Prop 19 parent-child/trust transfer, new construction, or an assessment correction/appeal -- is indistinguishable here from a real arms-length sale. This comp pool therefore has a genuinely higher false-positive rate than SF's sale-confirmed jump comps: some flagged 'recent resets' are not real market-rate sales. For each target home, the 7 nearest recent-reset comps by location set the estimate: median $/sqft x subject sqft. 'By location' means same city if it has 12+ comps of its own (using CITY as Riverside's rough analog to SF's neighborhoods, since Riverside spans dozens of incorporated cities plus unincorporated area); otherwise, comps are pooled from every city in the same price quartile (ranked by each city's own comps) rather than the whole county. Cities with zero comps of their own still fall back countywide. Estimated market value is then floored at the home's current assessed value, same rationale as SF: an estimate below assessed value is almost always the comp model undershooting, not a real declining-value home.",
     "tax_assumptions": {
       "current_general_rate_pct": 1.0,
@@ -12,7 +12,7 @@
     },
     "known_limitations": [
       "Higher false-positive comp rate than SF: PRIME_BASE_YEAR resets from non-arms-length transfers, new construction, or assessment corrections cannot be distinguished from real sales (no sale-date field exists anywhere in Riverside's public assessor schema).",
-      "Countywide sample, not full coverage: only a systematic ~1-in-5 sample of the county's Single Family Dwelling parcels was fetched, for tractability given ArcGIS's 2000-row-per-request cap and hundreds of thousands of candidate parcels.",
+      "Full county coverage: this run fetches and joins every Single Family Dwelling parcel countywide (no sampling). An earlier version of this pipeline covered only a systematic 1-in-5 sample (~116,000 parcels) for tractability given ArcGIS's 2000-row-per-request cap; that limitation no longer applies.",
       "The HPI appreciation adjustment uses a single countywide index (FRED ATNHPIUS06065A) applied uniformly to every comp regardless of city -- it corrects for Riverside County's average appreciation trend but not for city-specific differences in appreciation rate (e.g. a desert resort city and an inland-valley suburb may have appreciated at different rates over the same decade); SF's HPI adjustment has this same limitation (one SF-wide index).",
       "CITY is a rough analog to SF's assessor-neighborhood field, coarser-grained (some cities span very different price tiers internally, e.g. Palm Springs vs. a small inland city)."
     ],
@@ -20,31 +20,31 @@
   },
   "counts": {
     "total_sfr_parcels_countywide": 580109,
-    "sampled_parcels_usable": 115680,
-    "recent_reset_comps": 56288,
-    "cities": 70,
-    "estimated_rows_written": 115677,
+    "sampled_parcels_usable": 578328,
+    "recent_reset_comps": 282285,
+    "cities": 131,
+    "estimated_rows_written": 578318,
     "comp_source_breakdown": {
-      "same_city": 115571,
-      "same_price_tier": 97,
-      "countywide_fallback": 9
+      "same_city": 578188,
+      "same_price_tier": 123,
+      "countywide_fallback": 7
     }
   },
   "stats": {
     "subsidy_vs_market_today": {
-      "p10": 21,
-      "median": 3150,
-      "mean": 3537,
-      "p90": 6900,
-      "p99": 13316,
+      "p10": 44,
+      "median": 3154,
+      "mean": 3518,
+      "p90": 6787,
+      "p99": 13351,
       "min": 0,
-      "max": 102811
+      "max": 143987
     },
     "under_reform": {
-      "would_pay_more": 79128,
-      "would_pay_less": 36549,
-      "pct_pay_more": 68.4,
-      "pct_pay_less": 31.6
+      "would_pay_more": 394933,
+      "would_pay_less": 183385,
+      "pct_pay_more": 68.3,
+      "pct_pay_less": 31.7
     }
   }
 }

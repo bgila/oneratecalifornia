@@ -51,12 +51,13 @@
       ]
     },
     losangeles: {
-      label: 'Los Angeles', file: 'data/losangeles-map-data.csv', hasMF: false, hasNeighborhoods: false,
-      center: [34.1861, -118.5738], zoom: 11,
-      lead: 'A slice of Los Angeles County — the western San Fernando Valley and Conejo corridor — single-family homes.',
+      label: 'Los Angeles', file: 'data/losangeles-map-data.csv.gz', hasMF: false, hasNeighborhoods: false,
+      center: [34.0693, -118.2366], zoom: 10,
+      lead: 'The full county — nearly 1.5 million single-family homes and condos, from Long Beach to Lancaster.',
       methodology: [
-        'Los Angeles County’s own assessor data is enormous (tens of gigabytes), so this map covers a real, contiguous slice of it — the western San Fernando Valley and Conejo corridor (Woodland Hills, West Hills, Chatsworth, Canoga Park, Winnetka, Reseda, Tarzana, Encino, Van Nuys, Calabasas, Agoura Hills, Westlake Village, Hidden Hills) — rather than the whole county, for now.',
-        'Within that slice, the method matches San Francisco’s exactly: comps are real reassessment events (an ≥ 8% year-over-year value jump matched to a recorded sale date), appreciation-adjusted to today’s-equivalent price via FRED’s house price index for LA County.',
+        'This covers the entire county: every single-family/condo parcel (UseType=\'SFR\') in the Assessor’s ~17.7GB bulk roll file (2006–2025), not a sample or a geographic slice.',
+        'Comps are real reassessment events, the same method as San Francisco: a parcel whose total assessed value jumps ≥ 8% year-over-year, matched to a recorded sale date within about a year, is treated as a real market reset. Older comps are appreciation-adjusted to today’s-equivalent price via FRED’s house price index for LA County.',
+        'For each home, the nearest comps set the estimate: same city first (LA County spans very different submarkets — Bel-Air, Compton, Lancaster — so a flat countywide pool would badly misprice most of them); a city with too few comps of its own falls back to a pool of similarly-priced cities, then to the full county as a last resort.',
         'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
       ]
     },
@@ -73,10 +74,11 @@
     riverside: {
       label: 'Riverside', file: 'data/riverside-map-data.csv', hasMF: false, hasNeighborhoods: false,
       center: [33.7927, -117.1817], zoom: 9,
-      lead: 'Riverside County, a sample of single-family homes.',
+      lead: 'The full county — every single-family home, from Corona to the Coachella Valley.',
       methodology: [
+        'This covers the entire county: every Single Family Dwelling parcel in the Assessor’s records, not a sample.',
         'Riverside County’s public data has no recorded sale-date field, and (unlike initial scouting suggested) its year-by-year value history turned out to only hold a single active roll year, not a real archive. So comps here are identified a third way: each parcel’s own recorded Prop 13 base-year (the year its assessment was last legally reset, by sale or new construction), rather than a value jump or a transfer-date field. Older comps are appreciation-adjusted to today’s-equivalent price via FRED’s house price index for Riverside County.',
-        'Because there’s no way to independently confirm a base-year reset against an actual recorded sale, this method accepts a higher false-positive rate on what counts as a valid comp than San Francisco’s approach — some flagged resets may be corrections or exemption changes rather than real transactions. This map also covers roughly 1 in 5 single-family parcels countywide (a systematic sample), not every one.',
+        'Because there’s no way to independently confirm a base-year reset against an actual recorded sale, this method accepts a higher false-positive rate on what counts as a valid comp than San Francisco’s approach — some flagged resets may be corrections or exemption changes rather than real transactions.',
         'As elsewhere on this map, an estimate is never allowed to fall below a home’s own current assessed value.'
       ]
     },
@@ -783,9 +785,25 @@
   var requestToken = 0;
   var neighborhoodExtrasLoaded = false;
 
+  // GitHub caps individual files at 100MB, and full-county LA (~1.5M parcels) as
+  // plain CSV runs ~145MB -- gzipped it's ~39MB. Decompressed here via the Fetch
+  // API's native DecompressionStream rather than a bundled JS gzip library, since
+  // browser support is now broad (Chrome/Edge 80+, Firefox 113+, Safari 16.4+).
+  function fetchMaybeGzip(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('fetch failed: ' + r.status);
+      if (url.endsWith('.gz')) {
+        if (typeof DecompressionStream === 'undefined') {
+          throw new Error('this browser can\'t decompress .gz map data');
+        }
+        return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text();
+      }
+      return r.text();
+    });
+  }
+
   function loadSFRData(fileUrl, token) {
-    fetch(fileUrl)
-      .then(function (r) { if (!r.ok) throw new Error('fetch failed: ' + r.status); return r.text(); })
+    fetchMaybeGzip(fileUrl)
       .then(function (text) {
         if (token !== requestToken) return;
         sfrCount = parseSFRCSV(text);

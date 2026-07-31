@@ -41,6 +41,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 PIPELINE_DIR = Path(__file__).resolve().parent
@@ -98,14 +99,22 @@ def main():
     pins = [p["pin"] for p in snapshot]
     print(f"fetching PRIME_BASE_YEAR for {len(pins)} sampled parcels...", file=sys.stderr)
 
+    # Parallelized the same way as riverside_01_fetch_snapshot.py: independent
+    # chunked join queries, bottlenecked on request latency rather than server
+    # throughput, so a thread pool gives a large wall-clock speedup over one
+    # chunk at a time.
     result = {}
-    for i, chunk in enumerate(chunks(pins, JOIN_CHUNK_SIZE)):
-        result.update(fetch_baseyear_chunk(chunk))
-        if i % 20 == 0:
-            print(f"  chunk {i}: {len(result)} so far", file=sys.stderr)
-            with open(OUT_PATH, "w") as f:
-                json.dump(result, f)
-        time.sleep(0.1)
+    chunk_list = list(chunks(pins, JOIN_CHUNK_SIZE))
+    done = 0
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futures = {pool.submit(fetch_baseyear_chunk, c): c for c in chunk_list}
+        for fut in as_completed(futures):
+            result.update(fut.result())
+            done += 1
+            if done % 40 == 0:
+                print(f"  chunk {done}/{len(chunk_list)}: {len(result)} so far", file=sys.stderr)
+                with open(OUT_PATH, "w") as f:
+                    json.dump(result, f)
 
     with open(OUT_PATH, "w") as f:
         json.dump(result, f)

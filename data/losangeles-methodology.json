@@ -1,46 +1,44 @@
 {
   "methodology": {
-    "source_assessed_values": "LA County Assessor: 'Assessor Parcel Data (Rolls 2006-Present)' bulk CSV (ArcGIS item 2231275cebd6426897bb9c2a7aaf9840), a single flat ~17.7GB file (no queryable FeatureServer/Socrata endpoint exists for it -- confirmed by pulling the item's own metadata, which shows url: null, type: CSV).",
+    "source_assessed_values": "LA County Assessor: Assessor Parcel Data (Rolls 2006-Present), bulk file",
     "source_url": "https://data.lacounty.gov/datasets/2231275cebd6426897bb9c2a7aaf9840",
-    "scope": "NOT all of LA County. A single HTTP byte-range request pulled the first 1.07GB of the file. Because the file's rows are AIN-major (each parcel's ~19 years of history are contiguous) and AIN encodes assessor map-book/page (a geographic index), this contiguous byte range is also a contiguous geographic swath: the western San Fernando Valley and adjoining Santa Monica Mountains / Conejo corridor communities -- largely Los Angeles city neighborhoods (Woodland Hills, West Hills, Chatsworth, Canoga Park, Winnetka, Reseda, Tarzana, Encino, Van Nuys) plus the incorporated cities of Calabasas, Agoura Hills, Westlake Village, and Hidden Hills. This was a deliberate scoping decision (per instructions not to download/process the full 17.7GB file), not a random or representative sample of LA County as a whole -- a second run starting at a different byte offset, or raising the byte cap, would cover a different or larger area.",
-    "use_type_filter": "UseType == 'SFR' (LA Assessor's own single-family-residence tag); condos (UseType=='CND') are out of scope for this run, unlike SF's map which folds in individually-deeded condos.",
-    "market_value_estimation": "Same jump-confirmed-comps method as SF's 03_process_sfr.py: a parcel whose total assessed value (Roll_LandValue + Roll_ImpValue + Roll_FixtureValue) jumps >=8% year-over-year, with a RecordingDate within a year of that jump, is treated as a confirmed market reset -- its post-jump assessed value is a real price-per-sqft signal. Unlike some counties, LA's bulk roll has a genuine RecordingDate field (confirmed against real rows before writing this pipeline), so this is the full method, not a value-jump-only fallback. Comps are appreciation-adjusted to today's-equivalent price via the FRED LA County house price index (ATNHPIUS06037A) when available. For each target home, the 7 nearest confirmed comps by straight-line distance set the estimate: median $/sqft x subject sqft. Unlike SF, comps are NOT bucketed by neighborhood/price-tier before the nearest-K search -- this run's scope is already a single contiguous ~106k-parcel swath (not all of heterogeneous LA County), so that extra layer wasn't needed; it would need to be reinstated before extending this pipeline countywide. Estimated market value is floored at the home's current assessed value, same reasoning as SF: a below-assessed estimate is almost always the model undershooting, not a real declining-value home.",
-    "house_price_index_adjustment": "applied: data/losangeles-hpi.json (FRED series ATNHPIUS06037A, 'All-Transactions House Price Index for Los Angeles County, CA', years 1975-2025, same convention as data/sf-hpi.json) loaded successfully. Every jump-confirmed comp's post-jump assessed $/sqft is scaled from its own comp year to 2025-equivalent price via hpi[2025]/hpi[comp_year], same logic 03_process_sfr.py uses for SF. This matters more here than for SF: our jump-confirmed comps span the full 2006-2024 history window (18 years), so a meaningful share of comps are old enough that skipping this step would have materially understated market value -- a 2006 comp's nominal price-per-sqft needed scaling by roughly 1.58x to reach 2025-equivalent, versus roughly 1.0x for a 2024 comp. (Note: an earlier run of this pipeline in a network-restricted sandbox could not reach fred.stlouisfed.org and fell back to nominal $/sqft; that was a sandbox networking limitation, not a data-availability gap -- the coordinator fetched data/losangeles-hpi.json externally and this run uses it.)",
+    "scope": "Full Los Angeles County, Single Family Residential (UseType='SFR'), all parcels with usable sqft/value/geometry, rolls 2006-2025",
+    "market_value_estimation": "Comps are identified by detecting actual reassessment events across each parcel's own 2006-2025 roll history (this bulk file uniquely includes full multi-year history AND a real RecordingDate field in one place): a parcel whose total assessed value (Roll_TotalValue) jumps >=8% year-over-year, with a recorded transfer date within about a year of that jump, is treated as a confirmed market reset -- its post-jump value is used as a real price-per-sqft signal, appreciation-adjusted to today's-equivalent price via FRED's house price index for LA County. For each home, the 7 nearest confirmed comps by location set the estimate: median $/sqft x subject sqft. 'By location' means same city first (LA County spans very different submarkets, so a flat countywide pool would badly misprice most of them); a city with fewer than 12 comps of its own falls back to a price-tier pool (cities ranked into 4 quartiles by their own comps' median $/sqft); a tier with too few comps falls back further to the full county. Estimated market value is floored at the home's own current assessed value, since a below-assessed estimate is almost always the comp model undershooting, not a real declining-value home.",
+    "known_limitations": "This is now the FULL county (not the earlier version's ~105k-parcel San Fernando Valley slice). Same weak point as San Francisco's own model: still undershoots at the very top of the market (large/luxury homes), since nearest-comp $/sqft blends in typical nearby homes rather than modeling a price tier directly.",
     "tax_assumptions": {
       "current_general_rate_pct": 1.0,
-      "bond_rate_pct_held_at_sf_rate": 0.18,
-      "proposed_general_rate_pct": 0.7,
-      "note": "bond rate is deliberately held at SF's rate (not LA County's actual bond rate) for cross-county comparability, matching the convention specified for this whole multi-county build."
+      "sf_bond_rate_pct": 0.18,
+      "proposed_general_rate_pct": 0.7
     },
-    "known_deviations_from_sf_pipeline": [
-      "Scope is a bounded ~106k-parcel geographic swath of LA County (northwest San Fernando Valley), not the whole county, due to the 17.7GB source file having no query API (see 'scope' above).",
-      "No neighborhood/price-tier comp bucketing (see 'market_value_estimation' above) -- valid only because of the narrow, roughly-homogeneous scope.",
-      "Condos (UseType=='CND') excluded; SF's map includes individually-deeded condos.",
-      "Added one filter beyond SF's (assessed_total > 0 only): parcels with a blank/'0' house number or blank street (~0.5% of parcels in scope, mostly PUD/common-area sub-parcels like shared driveways or HOA lots misfiled as UseType=='SFR') are dropped, since they aren't addressable homes a map user could look up."
-    ],
     "generated": "2026-07-31"
   },
   "counts": {
-    "total_parcels_in_scope": 104965,
-    "jump_confirmed_comps": 49347,
-    "estimated_rows_written": 104965,
-    "history_window": "2006-2024"
+    "total_ains_seen": 2506701,
+    "usable_sfr_parcels": 1488279,
+    "jump_confirmed_comps": 660319,
+    "cities": 497,
+    "cities_with_own_comps": 383,
+    "estimated_rows_written": 1488279,
+    "comp_source_breakdown": {
+      "same_city": 1487160,
+      "same_price_tier": 956,
+      "countywide_fallback": 163
+    }
   },
   "stats": {
     "subsidy_vs_market_today": {
-      "p10": 822,
-      "median": 6339,
-      "mean": 7513,
-      "p90": 14690,
-      "p99": 30588,
+      "p10": 847,
+      "median": 5833,
+      "mean": 8485,
+      "p90": 16803,
       "min": 0,
-      "max": 162911
+      "max": 1229076
     },
     "under_reform": {
-      "would_pay_more": 80539,
-      "would_pay_less": 24426,
-      "pct_pay_more": 76.7,
-      "pct_pay_less": 23.3
+      "would_pay_more": 1181290,
+      "would_pay_less": 306989,
+      "pct_pay_more": 79.4,
+      "pct_pay_less": 20.6
     }
   }
 }

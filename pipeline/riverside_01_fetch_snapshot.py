@@ -26,23 +26,21 @@ table:
 
 Scope decision: Riverside has 846,251 total parcels in PARCELS_CREST, of
 which 580,109 carry CLASS_CODE='Single Family Dwelling' (confirmed via a
-live returnCountOnly query). That's still far beyond what's practical to
-fully fetch and join across 4 tables (each capped at maxRecordCount=2000
-per request) in one pipeline run, so per the assigned practical
-constraints we take a bounded, systematic sample instead of the full
-580,109: every 5th parcel in APN order (stride=5), which yields ~116,000
-parcels (~20% of the SFR universe), comfortably inside the suggested
-50,000-150,000 sample range while still spanning the entire county
-geographically (APN order in Riverside's system runs by assessment map
-book/page, which is itself geographically organized, so a fixed-stride
-sample avoids the bias a contiguous head-N slice would have of only
-capturing one part of the county).
+live returnCountOnly query). An earlier version of this pipeline took a
+bounded systematic sample instead of the full 580,109 (every 5th parcel
+in APN order, ~116,000 parcels, "for tractability"). Per an explicit
+follow-up request for full county coverage, this version fetches and
+joins the ENTIRE 580,109-parcel Single Family Dwelling universe across
+the 3 rate-limited tables (each capped at maxRecordCount=2000 per
+request, so this just means ~5x the pagination/chunking of the sampled
+run -- same join logic, same chunk size, no sampling step). Expect this
+run to take roughly 5x as long as the sampled run.
 
 Reads:  nothing (hits the network)
-Writes: pipeline/tmp/riverside_snapshot_raw.json   (enriched sampled snapshot)
-        pipeline/tmp/riverside_scope_meta.json     (scope/sampling metadata,
-                                                     consumed by 03_process
-                                                     for the methodology doc)
+Writes: pipeline/tmp/riverside_snapshot_raw.json   (enriched full-county snapshot)
+        pipeline/tmp/riverside_scope_meta.json     (scope metadata, consumed by
+                                                     03_process for the
+                                                     methodology doc)
 """
 import json
 import sys
@@ -50,6 +48,7 @@ import time
 import urllib.parse
 import urllib.request
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 PIPELINE_DIR = Path(__file__).resolve().parent
@@ -63,7 +62,6 @@ PROPERTY_CHAR = f"{MAPSERVER}/80/query"
 TAXYEAR = f"{MAPSERVER}/100/query"
 
 CLASS_CODE_SFR = "Single Family Dwelling"
-SAMPLE_STRIDE = 5  # keep every 5th parcel in APN order -> ~20% of the SFR universe
 PAGE_SIZE = 2000  # ArcGIS server's maxRecordCount for this MapServer
 JOIN_CHUNK_SIZE = 250  # PINs per "IN (...)" join query
 
@@ -90,30 +88,41 @@ def http_query(url, params, method="GET", timeout=60, retries=4):
     raise RuntimeError(f"failed query to {url} params={params}")
 
 
+def fetch_sfr_count():
+    params = {"where": f"CLASS_CODE='{CLASS_CODE_SFR}'", "returnCountOnly": "true", "f": "json"}
+    return http_query(PARCELS_CREST, params).get("count", 0)
+
+
+def fetch_sfr_page(offset):
+    params = {
+        "where": f"CLASS_CODE='{CLASS_CODE_SFR}'",
+        "outFields": "APN,SITUS_STREET,CITY,ZIP_CODE",
+        "returnGeometry": "false",
+        "orderByFields": "APN",
+        "resultOffset": offset,
+        "resultRecordCount": PAGE_SIZE,
+        "f": "json",
+    }
+    return http_query(PARCELS_CREST, params).get("features", [])
+
+
 def fetch_full_sfr_list():
     """Page through PARCELS_CREST for every Single Family Dwelling parcel,
-    lightweight fields only (no geometry yet -- that's fetched later, just
-    for the sampled subset, since geometry payloads are heavy)."""
+    lightweight fields only (no geometry yet -- that's fetched later). ArcGIS
+    supports random-access offset paging, so once the total count is known
+    every page can be requested concurrently instead of one at a time."""
+    total = fetch_sfr_count()
+    offsets = list(range(0, total, PAGE_SIZE))
+    print(f"  total SFR count: {total} ({len(offsets)} pages)", file=sys.stderr)
     rows = []
-    offset = 0
-    while True:
-        params = {
-            "where": f"CLASS_CODE='{CLASS_CODE_SFR}'",
-            "outFields": "APN,SITUS_STREET,CITY,ZIP_CODE",
-            "returnGeometry": "false",
-            "orderByFields": "APN",
-            "resultOffset": offset,
-            "resultRecordCount": PAGE_SIZE,
-            "f": "json",
-        }
-        data = http_query(PARCELS_CREST, params)
-        feats = data.get("features", [])
-        rows.extend(feats)
-        print(f"  offset={offset} got={len(feats)} total_so_far={len(rows)}", file=sys.stderr)
-        if len(feats) < PAGE_SIZE:
-            break
-        offset += PAGE_SIZE
-        time.sleep(0.15)
+    done = 0
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futures = {pool.submit(fetch_sfr_page, off): off for off in offsets}
+        for fut in as_completed(futures):
+            rows.extend(fut.result())
+            done += 1
+            if done % 40 == 0:
+                print(f"  list page {done}/{len(offsets)}: {len(rows)} so far", file=sys.stderr)
     return rows
 
 
@@ -213,37 +222,43 @@ def main():
     for f in full_rows:
         a = f["attributes"]
         by_apn[a["APN"]] = a
-    apn_sorted = sorted(by_apn.keys())
-    sample_apns = apn_sorted[::SAMPLE_STRIDE]
-    print(f"sampled {len(sample_apns)} parcels (every {SAMPLE_STRIDE}th, APN order)", file=sys.stderr)
+    target_apns = sorted(by_apn.keys())
+    print(f"targeting full universe: {len(target_apns)} parcels (no sampling)", file=sys.stderr)
 
-    print("fetching geometry (centroids) for sample...", file=sys.stderr)
+    # Each chunk is an independent join query (no shared state between them), so
+    # they're fetched concurrently via a thread pool instead of one at a time --
+    # the bottleneck here is per-request network round-trip latency, not CPU or
+    # the server's own throughput limit (no rate-limit/429 responses observed at
+    # this concurrency in testing), so parallelizing gives a large wall-clock win.
+    MAX_WORKERS = 12
+
+    def fetch_all_chunks(label, fetch_fn, merge_into):
+        chunk_list = list(chunks(target_apns, JOIN_CHUNK_SIZE))
+        done = 0
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            futures = {pool.submit(fetch_fn, c): c for c in chunk_list}
+            for fut in as_completed(futures):
+                merge_into.update(fut.result())
+                done += 1
+                if done % 40 == 0:
+                    print(f"  {label} chunk {done}/{len(chunk_list)}: {len(merge_into)} so far", file=sys.stderr)
+        print(f"  {label} DONE: {done}/{len(chunk_list)} chunks, {len(merge_into)} total", file=sys.stderr)
+
+    print("fetching geometry (centroids) for full universe...", file=sys.stderr)
     geoms = {}
-    for i, chunk in enumerate(chunks(sample_apns, JOIN_CHUNK_SIZE)):
-        geoms.update(fetch_geometry_chunk(chunk))
-        if i % 20 == 0:
-            print(f"  geometry chunk {i}: {len(geoms)} so far", file=sys.stderr)
-        time.sleep(0.1)
+    fetch_all_chunks("geometry", fetch_geometry_chunk, geoms)
 
-    print("fetching property characteristics (living area, etc) for sample...", file=sys.stderr)
+    print("fetching property characteristics (living area, etc) for full universe...", file=sys.stderr)
     prop_char = {}
-    for i, chunk in enumerate(chunks(sample_apns, JOIN_CHUNK_SIZE)):
-        prop_char.update(fetch_property_char_chunk(chunk))
-        if i % 20 == 0:
-            print(f"  prop_char chunk {i}: {len(prop_char)} so far", file=sys.stderr)
-        time.sleep(0.1)
+    fetch_all_chunks("prop_char", fetch_property_char_chunk, prop_char)
 
-    print("fetching current assessed value (CREST_TAXYEAR) for sample...", file=sys.stderr)
+    print("fetching current assessed value (CREST_TAXYEAR) for full universe...", file=sys.stderr)
     tax_totals = {}
-    for i, chunk in enumerate(chunks(sample_apns, JOIN_CHUNK_SIZE)):
-        tax_totals.update(fetch_taxyear_chunk(chunk))
-        if i % 20 == 0:
-            print(f"  taxyear chunk {i}: {len(tax_totals)} so far", file=sys.stderr)
-        time.sleep(0.1)
+    fetch_all_chunks("taxyear", fetch_taxyear_chunk, tax_totals)
 
     print("joining...", file=sys.stderr)
     snapshot = []
-    for apn in sample_apns:
+    for apn in target_apns:
         if apn not in geoms:
             continue
         lat, lon = geoms[apn]
@@ -275,8 +290,9 @@ def main():
     with open(OUT_SCOPE_META, "w") as f:
         json.dump({
             "total_sfr_parcels_countywide": total_sfr,
-            "sample_stride": SAMPLE_STRIDE,
-            "sample_size_requested": len(sample_apns),
+            "full_coverage": True,
+            "sample_stride": None,
+            "sample_size_requested": len(target_apns),
             "sample_size_usable": len(snapshot),
         }, f)
 

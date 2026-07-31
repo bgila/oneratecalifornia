@@ -335,14 +335,13 @@ def main():
             "source_url": "https://gis.countyofriverside.us/arcgis_mapping/rest/services/OpenData/Assessor/MapServer",
             "scope": (
                 "Single Family Dwelling class code only (CLASS_CODE='Single Family Dwelling' in PARCELS_CREST), "
-                f"{scope_meta.get('total_sfr_parcels_countywide', 'unknown')} parcels countywide. Rather than fetch "
-                "and join all of those across 4 rate-limited tables, a bounded systematic sample was taken: every "
-                f"{scope_meta.get('sample_stride', 5)}th parcel in APN order "
-                f"({scope_meta.get('sample_size_requested', 'unknown')} requested, "
-                f"{scope_meta.get('sample_size_usable', len(parcels))} usable after joins/filters). APN order in "
-                "Riverside's system runs by assessment map book/page, which is itself geographically organized "
-                "across the whole county, so a fixed-stride sample avoids the geographic bias a contiguous "
-                "first-N slice would have."
+                f"{scope_meta.get('total_sfr_parcels_countywide', 'unknown')} parcels countywide -- "
+                "full county coverage, fetched and joined across 3 rate-limited tables "
+                f"({scope_meta.get('sample_size_requested', 'unknown')} targeted, "
+                f"{scope_meta.get('sample_size_usable', len(parcels))} usable after joins/filters; the small gap "
+                "is parcels missing geometry, living area, or assessed value in one of the source tables). "
+                "An earlier version of this pipeline covered only a systematic 1-in-5 sample (~116,000 parcels) "
+                "for tractability; this run fetches the entire Single Family Dwelling universe."
             ),
             "market_value_estimation": (
                 "There is no public bulk sale-price dataset for Riverside real estate, so market value is inferred "
@@ -397,10 +396,10 @@ def main():
                 "Higher false-positive comp rate than SF: PRIME_BASE_YEAR resets from non-arms-length transfers, "
                 "new construction, or assessment corrections cannot be distinguished from real sales (no sale-date "
                 "field exists anywhere in Riverside's public assessor schema).",
-                "Countywide sample, not full coverage: only a systematic ~1-in-"
-                f"{scope_meta.get('sample_stride', 5)} sample of the county's Single Family Dwelling parcels was "
-                "fetched, for tractability given ArcGIS's 2000-row-per-request cap and hundreds of thousands of "
-                "candidate parcels.",
+                "Full county coverage: this run fetches and joins every Single Family Dwelling parcel countywide "
+                "(no sampling). An earlier version of this pipeline covered only a systematic 1-in-5 sample "
+                "(~116,000 parcels) for tractability given ArcGIS's 2000-row-per-request cap; that limitation no "
+                "longer applies.",
                 "The HPI appreciation adjustment uses a single countywide index (FRED ATNHPIUS06065A) applied "
                 "uniformly to every comp regardless of city -- it corrects for Riverside County's average "
                 "appreciation trend but not for city-specific differences in appreciation rate (e.g. a desert "
