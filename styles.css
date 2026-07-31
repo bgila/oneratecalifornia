@@ -296,11 +296,26 @@
     z-index: 1;
   }
   .sfmap-panel {
-    background: var(--surface-alt);
-    border: 1px solid var(--border);
+    background: var(--tab-active);
+    border: 1px solid var(--tab-active);
     border-radius: 0 8px 8px 8px;
     padding: 1.2rem 1.2rem 1.4rem;
   }
+  /* Everything that sits directly on the panel's own green background (as opposed
+     to inside a white card like the map legend, methodology, or search dropdown)
+     needs light text instead of the site's normal dark-on-light palette, and a
+     touch more size since it's now doing more contrast work. */
+  .sfmap-panel .hint,
+  .sfmap-count,
+  .sfmap-toggle,
+  .sfmap-hint,
+  .map-caption {
+    color: rgba(255,255,255,0.92);
+  }
+  .sfmap-count { font-size: 0.88rem; }
+  .sfmap-hint { font-size: 0.85rem; }
+  .map-caption { font-size: 0.88rem; }
+  .sfmap-hint a, .map-caption a { color: var(--gold); }
   .sfmap-controls {
     display: flex;
     align-items: center;
