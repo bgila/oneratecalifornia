@@ -16,6 +16,7 @@
   var mapPanelEl = document.getElementById('sfmap-panel-map');
   var tfpPanelEl = document.getElementById('sfmap-panel-tfp');
   var tabButtons = document.querySelectorAll('.sfmap-tab');
+  var jumpToEl = document.getElementById('sfmap-jumpto');
   var extraHomesEl = document.getElementById('sfmap-extra-homes');
   var extraNbEl = document.getElementById('sfmap-extra-neighborhoods');
   var legendHomesEl = document.getElementById('sfmap-legend-homes');
@@ -439,6 +440,7 @@
     });
     mapPanelEl.hidden = tab === 'tfp';
     tfpPanelEl.hidden = tab !== 'tfp';
+    jumpToEl.style.visibility = tab === 'tfp' ? 'hidden' : 'visible';
     extraHomesEl.hidden = tab !== 'homes';
     extraNbEl.hidden = tab !== 'neighborhoods';
     legendHomesEl.hidden = tab !== 'homes';

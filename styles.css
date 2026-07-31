@@ -279,6 +279,10 @@
      children were direct flex items of .sfmap-controls, without an extra box. */
   .sfmap-controls-extra { display: contents; }
   .sfmap-controls-extra[hidden] { display: none; }
+  /* display:contents so "Jump to" stays a direct flex child of .sfmap-controls;
+     hidden via visibility (not display) on the Tax Fairness Project tab, so its
+     row keeps the same height instead of the layout below jumping up. */
+  .sfmap-jumpto { display: contents; }
   .sfmap-metric-toggle { display: inline-flex; gap: 0.4rem; }
   .metric-btn {
     appearance: none;
@@ -756,7 +760,7 @@
       width: calc(100vw - 3rem);
       margin-left: calc(50% - 50vw + 1.5rem);
       margin-right: calc(50% - 50vw + 1.5rem);
-      height: max(560px, 80vh);
+      height: max(560px, 70vh);
     }
   }
 

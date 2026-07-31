@@ -99,10 +99,12 @@
       </div>
 
       <div class="sfmap-controls">
-        <label for="sfmap-neighborhood" class="hint">Jump to:</label>
-        <select id="sfmap-neighborhood">
-          <option value="">Whole city</option>
-        </select>
+        <span class="sfmap-jumpto" id="sfmap-jumpto">
+          <label for="sfmap-neighborhood" class="hint">Jump to:</label>
+          <select id="sfmap-neighborhood">
+            <option value="">Whole city</option>
+          </select>
+        </span>
         <span class="sfmap-controls-extra" id="sfmap-extra-homes">
           <div class="sfmap-search-wrap">
             <label for="sfmap-search" class="visually-hidden">Search an address</label>
@@ -145,11 +147,6 @@
       </div>
 
       <div class="sfmap-tfp-panel" id="sfmap-panel-tfp" hidden>
-        <p class="section-lead">
-          Every dot is a real Bay Area home, colored by its property tax subsidy — the gap between what it
-          actually pays and what it would pay if assessed at today's market value. Map and data:
-          <a href="https://www.taxfairnessproject.org/map" target="_blank" rel="noopener">The Tax Fairness Project</a>.
-        </p>
         <div class="map-embed-wrap">
           <iframe src="https://www.taxfairnessproject.org/map" title="Property tax subsidy map by The Tax Fairness Project" loading="lazy"></iframe>
         </div>
