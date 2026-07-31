@@ -23,6 +23,7 @@
     --tab-active: #5c7568; /* desaturated forest green, for the active map-view tab */
 
     --gold: #D4AF37;
+    --gold-bright: #E8C158; /* links on the green map panel need more pop than --gold */
 
     --up: #8a3a24;
     --up-bg: #f6e6e0;
@@ -223,7 +224,7 @@
     --map-hide: 190px;
     position: relative;
     margin-top: 0.9rem;
-    height: 640px;
+    height: 660px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -247,9 +248,10 @@
   }
   .map-caption {
     margin-top: 0.7rem;
-    font-size: 0.85rem;
-    color: var(--ink-soft);
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.95);
   }
+  .map-caption a { color: var(--gold-bright); }
   .compare-callout {
     margin-top: 1.4rem;
     background: var(--surface);
@@ -301,21 +303,7 @@
     border-radius: 0 8px 8px 8px;
     padding: 1.2rem 1.2rem 1.4rem;
   }
-  /* Everything that sits directly on the panel's own green background (as opposed
-     to inside a white card like the map legend, methodology, or search dropdown)
-     needs light text instead of the site's normal dark-on-light palette, and a
-     touch more size since it's now doing more contrast work. */
-  .sfmap-panel .hint,
-  .sfmap-count,
-  .sfmap-toggle,
-  .sfmap-hint,
-  .map-caption {
-    color: rgba(255,255,255,0.92);
-  }
-  .sfmap-count { font-size: 0.88rem; }
-  .sfmap-hint { font-size: 0.85rem; }
-  .map-caption { font-size: 0.88rem; }
-  .sfmap-hint a, .map-caption a { color: var(--gold); }
+  .sfmap-panel .hint { color: rgba(255,255,255,0.95); font-size: 0.95rem; }
   .sfmap-controls {
     display: flex;
     align-items: center;
@@ -369,7 +357,7 @@
     background: var(--surface);
     font-size: 0.9rem;
   }
-  .sfmap-count { font-size: 0.85rem; color: var(--ink-soft); }
+  .sfmap-count { font-size: 0.95rem; color: rgba(255,255,255,0.95); }
   .visually-hidden {
     position: absolute;
     width: 1px; height: 1px;
@@ -494,8 +482,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.85rem;
-    color: var(--ink-soft);
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.95);
     cursor: pointer;
   }
   .sfmap-toggle input { margin: 0; }
@@ -530,7 +518,8 @@
   }
   .leaflet-tooltip.nb-label::before { display: none; }
 
-  .sfmap-hint { margin-top: 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
+  .sfmap-hint { margin-top: 0.6rem; font-size: 0.95rem; color: rgba(255,255,255,0.95); }
+  .sfmap-hint a { color: var(--gold-bright); }
   .small-note { margin-top: 0.9rem; font-size: 0.78rem; color: var(--ink-soft); }
   .sfmap-methodology { margin-top: 1.2rem; }
 
@@ -823,7 +812,7 @@
        map instead of more map. */
     .map-embed-wrap {
       width: 100%;
-      height: 640px;
+      height: 660px;
     }
   }
 
