@@ -1,10 +1,12 @@
 """
-Build a small pool of San Francisco single-family homes for the hero
-section's "Prop 13 over time" chart -- a plain random sample, no cherry-
-picking. The only real constraint is that the home has to have existed for
-the full chart window (1975-2025, see hero-chart.js), so it's filtered to
-built-before-1976; beyond that every qualifying home has an equal chance
-of being picked.
+Build a small pool of San Francisco single-family homes and condos for the
+hero section's "Prop 13 over time" chart -- a plain random sample, no
+cherry-picking. (DataSF's use_definition="Single Family Residential" bucket
+already includes condos, distinguished only by property_class_code_definition
+e.g. "Condominium" -- no separate query needed.) The only real constraint is
+that the home has to have existed for the full chart window (1975-2025, see
+hero-chart.js), so it's filtered to built-before-1976; beyond that every
+qualifying home has an equal chance of being picked.
 
 Each home also carries its real recorded sale year, if DataSF has one on
 file (that field only goes back to ~1983 -- null means either no sale
@@ -42,7 +44,7 @@ FIELDS = (
     "current_sales_date,assessed_land_value,assessed_improvement_value,"
     "assessed_fixtures_value,the_geom"
 )
-POOL_SIZE = 50
+POOL_SIZE = 100
 MIN_SQFT = 400
 MAX_SQFT = 6000
 SEED = 42
