@@ -235,6 +235,12 @@ def main():
                 no_estimate += 1
                 continue
             est_market_value = psf * p["sqft"]
+            # Floor at the current assessed value, same reasoning as 03_process_sfr.py:
+            # in today's market a building's true value essentially never sits below
+            # what Prop 13 has grown its assessment to, so an estimate below assessed
+            # value is almost always the comp model undershooting, not a real
+            # declining-value building.
+            est_market_value = max(est_market_value, p["assessed_total"])
             current_tax = p["assessed_total"] * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100
             market_tax_current_law = est_market_value * (GENERAL_RATE_CURRENT + BOND_RATE_SF) / 100
             reform_tax = est_market_value * (GENERAL_RATE_PROPOSED + BOND_RATE_SF) / 100
@@ -271,7 +277,9 @@ def main():
                 f"than trying to find individual nearby comps. Neighborhoods with fewer than {MIN_COMPS_FOR_NB} "
                 f"qualifying sales fall back to a $/sqft average pooled from the {FALLBACK_K_NEIGHBORHOODS} "
                 "nearest neighborhoods (by centroid distance) instead. Estimate = neighborhood (or pooled-nearby) "
-                "avg $/sqft x building's total sqft."
+                "avg $/sqft x building's total sqft, floored at the building's current assessed value (a below-"
+                "assessed estimate is almost always the comp average undershooting, not a real declining-value "
+                "building)."
             ),
             "caveats": (
                 "This is a rougher estimate than the single-family/condo model: it values the whole building at "
