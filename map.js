@@ -29,6 +29,14 @@
   var methodHomesEl = document.getElementById('sfmap-methodology-homes');
   var methodNbEl = document.getElementById('sfmap-methodology-neighborhoods');
   var methodTfpEl = document.getElementById('sfmap-methodology-tfp');
+  // The three per-tab methodology blocks are separate <details> elements, but should
+  // read as a single "is methodology open" preference that survives tab switches --
+  // opening it on one tab keeps it open when you switch to another.
+  var methodElements = [methodHomesEl, methodNbEl, methodTfpEl];
+  var methodologyOpen = false;
+  methodElements.forEach(function (el) {
+    el.addEventListener('toggle', function () { methodologyOpen = el.open; });
+  });
   var metricButtons = document.querySelectorAll('.metric-btn');
 
   var fmtUSD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -450,6 +458,7 @@
     methodHomesEl.hidden = tab !== 'homes';
     methodNbEl.hidden = tab !== 'neighborhoods';
     methodTfpEl.hidden = tab !== 'tfp';
+    methodElements.forEach(function (el) { el.open = methodologyOpen; });
 
     if (tab === 'homes') {
       map.addLayer(sfrLayer);

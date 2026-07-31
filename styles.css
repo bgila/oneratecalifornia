@@ -245,35 +245,47 @@
 
   /* ---------- SF map (ours) ---------- */
   .sfmap-section { background: var(--surface); }
+  /* Folder-tab look: tabs sit flush on top of .sfmap-panel below, overlapping its
+     top border by 1px. The active tab matches the panel's background exactly so
+     the border between them visually disappears, like a folder tab in front. */
   .sfmap-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.3rem;
     margin-top: 1.4rem;
+    position: relative;
   }
   .sfmap-tab {
     appearance: none;
-    background: var(--surface-alt);
+    background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.55rem 1.1rem;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    padding: 0.6rem 1.2rem;
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--ink-soft);
     cursor: pointer;
+    position: relative;
+    top: 1px;
   }
-  .sfmap-tab:hover { background: var(--bg); }
+  .sfmap-tab:hover { background: var(--surface-alt); }
   .sfmap-tab.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-contrast);
+    background: var(--surface-alt);
+    color: var(--ink);
+    z-index: 1;
+  }
+  .sfmap-panel {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 0 8px 8px 8px;
+    padding: 1.2rem 1.2rem 1.4rem;
   }
   .sfmap-controls {
     display: flex;
     align-items: center;
     gap: 0.9rem;
     flex-wrap: wrap;
-    margin-top: 1.2rem;
   }
   /* display:contents so the two swappable control groups lay out as if their
      children were direct flex items of .sfmap-controls, without an extra box. */
